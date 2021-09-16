@@ -33,7 +33,7 @@
 !     
 !     type(c3_data) :: c3
 !     c3 = c3_data(['hoge.BHE', 'hoge.BHN', 'hoge.BHZ']) 
-!     call c3%append_data(['hoge2.BHE', 'hoge2.BHN', 'hoge3.BHZ'])
+!     call c3%enqueue_data(['hoge2.BHE', 'hoge2.BHN', 'hoge3.BHZ'])
 !     call c3%output_data('hoge.txt')
 !=======================================================================
 module cls_c3_data
@@ -45,10 +45,11 @@ module cls_c3_data
      integer                       :: n_cmps
      double precision              :: dt
      double precision, allocatable :: data(:,:) ! size(n_smp, n_cmps)
-     
+    
    contains
      procedure :: read_sac     => c3_data_read_sac
-     procedure :: append_data  => c3_data_append_data
+     procedure :: enqueue_data => c3_data_enqueue_data
+     procedure :: dequeue_data => c3_data_dequeue_data
      procedure :: output_data  => c3_data_output_data
      procedure :: get_n_smp    => c3_data_get_n_smp
      procedure :: get_dt       => c3_data_get_dt
@@ -118,7 +119,7 @@ contains
           prev_npts = npts
           self%n_smp = 0
        else if (i == 1) then
-          ! Append
+          ! Enqueue
           allocate(tmp(self%n_smp + npts, n))
           tmp(1:self%n_smp, 1:n) = self%data(1:self%n_smp, 1:n)
           call move_alloc(from=tmp, to=self%data)
@@ -154,15 +155,36 @@ contains
 
   !---------------------------------------------------------------------
 
-  subroutine c3_data_append_data(self, files)
+  subroutine c3_data_enqueue_data(self, files)
     class(c3_data), intent(inout) :: self
     character(*), intent(in) :: files(:)
 
     call self%read_sac(files)
 
     return 
-  end subroutine c3_data_append_data
+  end subroutine c3_data_enqueue_data
     
+  !---------------------------------------------------------------------
+
+  function c3_data_dequeue_data(self, n) result(data)
+    class(c3_data), intent(inout) :: self
+    integer, intent(in) :: n
+    double precision :: data(n, self%n_cmps)
+    double precision, allocatable :: tmp(:,:)
+
+    if (n > self%n_smp) then
+       error stop "ERROR: data length is not enough in queue"
+    end if
+
+    data(1:n, 1:self%n_cmps) = self%data(1:n, 1:self%n_cmps)
+    allocate(tmp(1:self%n_smp - n, 1:self%n_cmps))
+    tmp(1:self%n_smp - n, 1:self%n_cmps) = &
+         & self%data(n + 1:self%n_smp, 1:self%n_cmps)
+    call move_alloc(from=tmp, to=self%data)
+    self%n_smp = self%n_smp - n
+    
+    return 
+  end function c3_data_dequeue_data
   !---------------------------------------------------------------------
   
   subroutine c3_data_output_data(self, out_file)

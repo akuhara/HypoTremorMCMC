@@ -22,7 +22,12 @@ program hypo_tremor_mcmc
   para = param(param_file, verb=verb)
 
   ! Convert raw data to CF
-  conv = convertor(para)
+  conv = convertor(&
+       & n_sta = para%get_n_stations(), &
+       & n_cmps = para%get_n_cmps(), &
+       & t_win  = 300.d0 , &
+       & filenames = para%get_filenames())
+  call conv%calc_envelope(1)
   
   stop
 end program hypo_tremor_mcmc

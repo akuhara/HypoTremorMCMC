@@ -73,7 +73,7 @@ module cls_param
      procedure :: get_data_dir => param_get_data_dir
      procedure :: get_filename_format => param_get_filename_format
      procedure :: make_filenames => param_make_filenames
-     procedure :: get_filename => param_get_filename
+     procedure :: get_filenames => param_get_filenames
      
   end type param
   
@@ -453,15 +453,15 @@ contains
   
   !---------------------------------------------------------------------
   
-  function param_get_filename(self, i_id, i_cmp, i_sta) result(filename)
+  function param_get_filenames(self) result(filenames)
     class(param), intent(inout) :: self
-    integer, intent(in) :: i_id, i_cmp, i_sta
-    character(line_max) :: filename
+    character(line_max) :: filenames(self%n_data_id, &
+         & self%n_cmps, self%n_stations)
     
-    filename = self%filenames(i_id, i_cmp, i_sta)
+    filenames = self%filenames
     
     return 
-  end function param_get_filename
+  end function param_get_filenames
 
   !---------------------------------------------------------------------
 

@@ -23,8 +23,8 @@ FFLAGS = -g -Wall -pedantic -std=f2008 -fbounds-check -O0 \
 #-----------------------------------------------------------------------
 
 # Example A. General case
-#FFTW   = -I/usr/local/include -lfftw3
-#LAPACK = -llapack -lblas
+FFTW   = -I/usr/local/include -lfftw3
+LAPACK = -llapack -lblas
 
 # Example B. EIC
 #FFTW    = -I$(MKLROOT)/include/fftw -mkl=parallel
@@ -50,12 +50,12 @@ all: $(TARGET)
 
 hypo_tremor_mcmc.o: cls_param.mod cls_line_text.mod cls_convertor.mod
 cls_param.o: cls_line_text.mod
-cls_convertor.o: cls_c3_data.mod cls_param.mod cls_line_text.mod
+cls_convertor.o: cls_c3_data.mod cls_line_text.mod
 
 
 $(HYPO_TREMOR_MCMC): $(OBJS_HYPO_TREMOR_MCMC)
 	@if [ ! -d $(BINDIR) ]; then mkdir $(BINDIR); fi
-	$(FC) $(FFLAGS) $(COV) $^ -o $@ 
+	$(FC) $(FFLAGS) $(COV) $(FFTW) $^ -o $@  
 
 
 .PHONY: clean
@@ -63,6 +63,6 @@ clean:
 	rm -f *.mod $(BINDIR)/* *.o
 
 %.o: %.f90
-	$(FC) $(FFLAGS) $(COV) -c $< -o $*.o 
+	$(FC) $(FFLAGS) $(COV) $(FFTW) -c $< -o $*.o 
 %.mod: %.f90 %.o
 	@:
