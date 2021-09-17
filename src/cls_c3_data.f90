@@ -33,7 +33,7 @@
 !     
 !     type(c3_data) :: c3
 !     c3 = c3_data(['hoge.BHE', 'hoge.BHN', 'hoge.BHZ']) 
-!     call c3%enqueue_data(['hoge2.BHE', 'hoge2.BHN', 'hoge3.BHZ'])
+!     call c3%enqueue_from_files(['hoge2.BHE', 'hoge2.BHN', 'hoge3.BHZ'])
 !     call c3%output_data('hoge.txt')
 !=======================================================================
 module cls_c3_data
@@ -48,6 +48,7 @@ module cls_c3_data
     
    contains
      procedure :: read_sac     => c3_data_read_sac
+     procedure :: enqueue_from_files => c3_data_enqueue_from_files
      procedure :: enqueue_data => c3_data_enqueue_data
      procedure :: dequeue_data => c3_data_dequeue_data
      procedure :: output_data  => c3_data_output_data
@@ -65,12 +66,30 @@ contains
   
   !---------------------------------------------------------------------
   
-  type(c3_data) function init_c3_data(files) &
+  type(c3_data) function init_c3_data(files, n_cmps, dt) &
        & result(self)
-    character(*), intent(in) :: files(:)
+    character(*), intent(in), optional :: files(:)
+    integer, intent(in), optional :: n_cmps
+    double precision, intent(in), optional :: dt
     
-    self%n_cmps = size(files)
-    call self%read_sac(files)
+    if (present(n_cmps)) then
+       self%n_cmps = n_cmps
+    end if
+    if (present(dt)) then
+       self%dt = dt
+    end if
+    if (present(files)) then
+       self%n_cmps = size(files)
+       call self%read_sac(files)
+       return 
+    end if
+
+    if (.not. present(files) .and. &
+         & (.not. present(n_cmps) .or. .not. present(dt))) then
+       error stop "ERROR: cannot initialize c3_data"
+    end if
+
+    
 
     return 
   end function init_c3_data
@@ -155,17 +174,54 @@ contains
 
   !---------------------------------------------------------------------
 
-  subroutine c3_data_enqueue_data(self, files)
+  subroutine c3_data_enqueue_from_files(self, files)
     class(c3_data), intent(inout) :: self
     character(*), intent(in) :: files(:)
 
     call self%read_sac(files)
 
     return 
-  end subroutine c3_data_enqueue_data
+  end subroutine c3_data_enqueue_from_files
     
   !---------------------------------------------------------------------
+  
+  subroutine c3_data_enqueue_data(self, x)
+    class(c3_data), intent(inout) :: self
+    double precision, intent(in) :: x(:,:)
+    double precision, allocatable :: tmp(:,:)    
+    integer :: n
 
+    write(*,*)"size = ", size(x(1,:)), "n_cmps=", self%n_cmps
+    if (size(x(1,:)) /= self%n_cmps) then
+
+       error stop "ERROR: illegal component number in queued data"
+    end if
+    
+    n = size(x(:,1))
+    write(*,*)"self%n_smp =", self%n_smp, "n=", n
+
+    if (allocated(self%data)) then
+       allocate(tmp(1:self%n_smp + n,1:self%n_cmps))
+       tmp(1:self%n_smp,1:self%n_cmps) = &
+            & self%data(1:self%n_smp,1:self%n_cmps)
+       tmp(self%n_smp+1:self%n_smp+n, 1:self%n_cmps) =&
+            & x(1:n, 1:self%n_cmps)
+       call move_alloc(from=tmp, to=self%data)
+       self%n_smp = self%n_smp + n
+    else
+       allocate(tmp(1:n,1:self%n_cmps))
+       tmp = x
+       call move_alloc(from=tmp, to=self%data)
+       self%n_smp = n
+    end if
+
+    
+
+    return 
+  end subroutine c3_data_enqueue_data
+
+  !---------------------------------------------------------------------
+  
   function c3_data_dequeue_data(self, n) result(data)
     class(c3_data), intent(inout) :: self
     integer, intent(in) :: n
@@ -185,6 +241,7 @@ contains
     
     return 
   end function c3_data_dequeue_data
+  
   !---------------------------------------------------------------------
   
   subroutine c3_data_output_data(self, out_file)

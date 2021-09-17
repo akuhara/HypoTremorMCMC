@@ -8,6 +8,7 @@ module cls_convertor
   type convertor
      private
      type(c3_data), allocatable :: c3(:)
+     type(c3_data), allocatable :: c3_out(:)
      double precision           :: t_win
      double precision           :: t_window_interval
      double precision           :: dt
@@ -54,6 +55,7 @@ contains
     self%n_cmps = n_cmps
     n_files = size(filenames(:,1,1))
     allocate(self%c3(self%n_sta))
+    allocate(self%c3_out(self%n_sta))
     allocate(self%filenames(n_files, self%n_cmps, self%n_sta))
     self%filenames = filenames
     
@@ -66,15 +68,21 @@ contains
     class(convertor), intent(inout) :: self
     integer, intent(in) :: i_sta
     double precision, allocatable :: tmp(:, :), processed(:,:)
-    integer :: n2, io, it, j, irow
+    integer :: n2, n4, io, it, j, irow
+    logical :: first_taper
     
     self%i_read_file = 1
-    self%c3(i_sta) = c3_data(self%filenames(1, 1:3, i_sta))
+    self%c3(i_sta) = c3_data(files=self%filenames(1, 1:3, i_sta))
     self%dt = self%c3(i_sta)%get_dt()
     self%n = nint(self%t_win / self%dt)
+    self%c3_out(i_sta) = c3_data(dt=self%dt, n_cmps=self%n_cmps)
     n2 = self%n / 2
     if (n2 + n2 /= self%n) then
        error stop "ERROR: n2 + n2 /= self%n"
+    end if
+    n4 = self%n / 4
+    if (n4 * 4 /= self%n) then
+       error stop "ERROR: n4 * 4 /= self%n"
     end if
     
     allocate(tmp(self%n, self%n_cmps))
@@ -99,7 +107,7 @@ contains
     
     write(*,*)"n_stored = ", self%c3(i_sta)%get_n_smp()
     write(*,*)self%filenames
-    
+    first_taper = .true.
     open(newunit=io, file="test.txt", status="replace")
     do 
        if (self%c3(i_sta)%get_n_smp() < self%n) then
@@ -110,7 +118,7 @@ contains
                & trim(self%filenames(self%i_read_file,1,i_sta)), " / ",&
                & trim(self%filenames(self%i_read_file,2,i_sta)), " / ",&
                & trim(self%filenames(self%i_read_file,3,i_sta)), "> "
-          call self%c3(i_sta)%enqueue_data(&
+          call self%c3(i_sta)%enqueue_from_files(&
                & self%filenames(self%i_read_file,:,i_sta))
           
           write(*,*)"n_stored = ", self%c3(i_sta)%get_n_smp()
@@ -136,11 +144,22 @@ contains
                  & self%envelope(processed(1:self%n, i_cmp))
          end do
        end block
-
-       block 
+       
+       ! output
+       if (.not. first_taper) then
+          call self%c3_out(i_sta)%enqueue_data(&
+               & processed(n4+1:self%n-n4,1:self%n_cmps))
+       else
+          call self%c3_out(i_sta)%enqueue_data(&
+               & processed(1:self%n-n4,1:self%n_cmps))
+          first_taper = .false.
+       end if
+       
+       block
+         
          double precision :: amp_fac = 4000.d0
          do j = 1, self%n
-            !write(io,*)(it + j) * self%dt, tmp(j, 1) / amp_fac + irow
+            write(io,*)(it + j) * self%dt, tmp(j, 1) / amp_fac + irow
          end do
          write(io,*)
          do j = 1, self%n
@@ -148,7 +167,7 @@ contains
          end do
          it = it + n2
          irow = irow + 1
-         write(io,*)
+        write(io,*)
        end block
        
     end do
@@ -162,21 +181,20 @@ contains
   function convertor_envelope(self, x) result(env)
     class(convertor), intent(inout) :: self
     double precision, intent(in) :: x(self%n)
-    double precision :: env(self%n), omega
-    integer :: i
-    double precision, parameter :: pi2 = 2.d0 * acos(-1.d0)
+    double precision :: env(self%n)
+
+
 
     self%r_tmp(1:self%n) = x(1:self%n)
     call fftw_execute_dft_r2c(self%plan_r2c, self%r_tmp, self%c_tmp)
-    !self%c2_tmp = self%c_tmp
-    !call fftw_execute_dft_c2r(self%plan_c2r, self%c2_tmp, self%r2_tmp)
-    !self%c_in_tmp = self%c_tmp
+    
     self%c_in_tmp(1) = (0.d0, 0.d0)
     self%c_in_tmp(2:self%n/2+1) = 2.d0 * self%c_tmp(2:self%n/2+1)
     self%c_in_tmp(self%n/2+2:self%n) = (0.d0, 0.d0)
+    
     call fftw_execute_dft(self%plan_c2c, self%c_in_tmp, self%c_out_tmp)
-    self%c_out_tmp = self%c_out_tmp / self%n
-    env(1:self%n) = abs(self%c_out_tmp(1:self%n)) 
+
+    env(1:self%n) = abs(self%c_out_tmp(1:self%n) / self%n) 
     
     return 
   end function convertor_envelope
