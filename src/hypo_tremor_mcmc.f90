@@ -27,7 +27,7 @@ program hypo_tremor_mcmc
        & n_cmps = para%get_n_cmps(), &
        & t_win  = 300.d0 , &
        & filenames = para%get_filenames())
-  call conv%calc_envelope(1)
+  call conv%convert(1)
   
   stop
 end program hypo_tremor_mcmc
