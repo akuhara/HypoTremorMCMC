@@ -32,6 +32,7 @@ module cls_convertor
      procedure :: envelope => convertor_envelope
      procedure :: detrend => convertor_detrend
      procedure :: taper   => convertor_taper
+     procedure :: rectangle_smoothing => convertor_rectangle_smoothing
   end type convertor
   
   interface convertor
@@ -142,6 +143,12 @@ contains
                  & self%taper(processed(1:self%n,i_cmp))
             processed(1:self%n, i_cmp) = &
                  & self%envelope(processed(1:self%n, i_cmp))
+            processed(1:self%n, i_cmp) = &
+                 & self%rectangle_smoothing(processed(1:self%n, i_cmp), &
+                 & int(10.0 / self%dt))
+            processed(1:self%n, i_cmp) = &
+                 & self%rectangle_smoothing(processed(1:self%n, i_cmp), &
+                 & int(10.0 / self%dt))
          end do
        end block
        
@@ -175,6 +182,33 @@ contains
     
     return 
   end subroutine convertor_convert
+
+  !---------------------------------------------------------------------
+  
+  function convertor_rectangle_smoothing(self, x, n_half) result(x_out)
+    class(convertor), intent(inout) :: self
+    double precision, intent(in) :: x(self%n)
+    integer, intent(in) :: n_half
+    double precision :: x_out(self%n), s
+    integer :: i
+
+    s = sum(x(1:n_half))
+    do i = 1, n_half
+       s = s + x(n_half+i)
+       x_out(i) = s / dble(n_half+i)
+    end do
+    do i = n_half+1, self%n-n_half
+       s = s + x(n_half+i) - x(i - n_half)
+       x_out(i) = s / dble(2*n_half + 1)
+    end do
+    do i = self%n-n_half+1, self%n
+       s = s - x(i-n_half)
+       x_out(i) = s / (self%n + n_half - i + 1)
+    end do
+
+
+    return 
+  end function convertor_rectangle_smoothing
 
   !---------------------------------------------------------------------
 
