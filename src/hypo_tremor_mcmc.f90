@@ -24,7 +24,7 @@ program hypo_tremor_mcmc
   ! Convert raw data to CF
   conv = convertor(&
        & n_cmps = para%get_n_cmps(), &
-       & t_win  = 300.d0 , &
+       & t_win  = para%get_t_win() , &
        & filenames = para%get_filenames(1))
   call conv%convert()
   

@@ -53,6 +53,9 @@ module cls_param
      character(line_max) :: data_dir, filename_format
      character(line_max), allocatable :: filenames(:,:,:)
 
+     ! Time window 
+     double precision :: t_win
+
      ! Verbose
      logical :: verb = .false.
 
@@ -74,7 +77,7 @@ module cls_param
      procedure :: get_filename_format => param_get_filename_format
      procedure :: make_filenames => param_make_filenames
      procedure :: get_filenames => param_get_filenames
-     
+     procedure :: get_t_win => param_get_t_win
   end type param
   
   interface param
@@ -290,6 +293,8 @@ contains
        self%data_dir = val
     else if (name == "filename_format") then
        self%filename_format = val
+    else if (name == "t_win") then
+       read(val,*) self%t_win
     else
        if (self%verb) then
           write(0,*)"ERROR: Invalid parameter name"
@@ -462,6 +467,15 @@ contains
     
     return 
   end function param_get_filenames
+
+  !---------------------------------------------------------------------
+  double precision function param_get_t_win(self) result(t_win)
+    class(param), intent(in) :: self
+    
+    t_win = self%t_win
+
+    return 
+  end function param_get_t_win
 
   !---------------------------------------------------------------------
 

@@ -74,8 +74,8 @@ contains
   subroutine convertor_convert(self)
     class(convertor), intent(inout) :: self
     double precision, allocatable :: tmp(:, :), processed(:,:)
-    integer :: n2, n4, io, it, j, irow
-    logical :: first_window
+    integer :: n2, n4, io, it, j, irow, i_cmp, n_len
+    logical :: first_flag, last_flag
     logical, parameter :: debug = .false.
     
     self%i_read_file = 1
@@ -114,64 +114,92 @@ contains
     
     write(*,*)"n_stored = ", self%c3%get_n_smp()
     write(*,*)self%filenames
-    first_window = .true.
+    first_flag = .true.
+    last_flag  = .false.
     if (debug) open(newunit=io, file="windows.txt", status="replace")
-    do 
+    processing: do 
+
+       ! << Append data, if necessary >>
        if (self%c3%get_n_smp() < self%n) then
-          self%i_read_file = self%i_read_file + 1
-          write(*,*)"i_read_file=", self%i_read_file
-          if (self%i_read_file > size(self%filenames(:,1))) exit
+          read_file: do 
+             self%i_read_file = self%i_read_file + 1
+             if (self%i_read_file > size(self%filenames(:,1))) exit read_file
+             
+             write(*,*)"enqueued from <", &
+                  & trim(self%filenames(self%i_read_file,1)), " / ",&
+                  & trim(self%filenames(self%i_read_file,2)), " / ",&
+                  & trim(self%filenames(self%i_read_file,3)), "> "
+             call self%c3%enqueue_from_files(&
+                  & self%filenames(self%i_read_file,:))
 
-          write(*,*)"enqueued from <", &
-               & trim(self%filenames(self%i_read_file,1)), " / ",&
-               & trim(self%filenames(self%i_read_file,2)), " / ",&
-               & trim(self%filenames(self%i_read_file,3)), "> "
-          call self%c3%enqueue_from_files(&
-               & self%filenames(self%i_read_file,:))
-          
-          write(*,*)"n_stored = ", self%c3%get_n_smp()
-               
-          
+             if (self%c3%get_n_smp() >= self%n) exit read_file
+          end do read_file
        end if
-       if (.not. first_window) then
-          tmp(1:n2,1:self%n_cmps) = tmp(n2+1:self%n,1:self%n_cmps)
-          tmp(n2+1:self%n,1:self%n_cmps) = self%c3%dequeue_data(n2)
+
+       ! << Check length >>
+       if (self%c3%get_n_smp() >= n2) then
+          n_len = self%n
        else
-          tmp(1:self%n,1:self%n_cmps) = self%c3%dequeue_data(self%n)
+          last_flag = .true.
+          n_len = n2 + self%c3%get_n_smp()
        end if
-
-       write(*,*)"dequeued: n_sotred = ", self%c3%get_n_smp()
-
        
-       ! Main 
-       processed(1:self%n, 1:self%n_cmps) = tmp(1:self%n, 1:self%n_cmps)
-       block 
-         integer :: i_cmp
-         do i_cmp = 1, self%n_cmps
-            processed(1:self%n, i_cmp) = &
-                 & self%detrend(processed(1:self%n,i_cmp))
-            processed(1:self%n, i_cmp) = &
-                 & self%taper(processed(1:self%n,i_cmp))
-            processed(1:self%n, i_cmp) = &
-                 & self%envelope(processed(1:self%n, i_cmp))
-            processed(1:self%n, i_cmp) = &
-                 & self%rectangle_smoothing(processed(1:self%n, i_cmp), &
-                 & int(2.5d0 / self%dt))
-            processed(1:self%n, i_cmp) = &
-                 & self%rectangle_smoothing(processed(1:self%n, i_cmp), &
-                 & int(2.5d0 / self%dt))
-        end do
-       end block
        
-       ! output
-       if (.not. first_window) then
+       ! << Processing >> 
+       if (.not. last_flag) then
+
+          ! Dequeue data
+          if (.not. first_flag .and. .not. last_flag) then
+             
+             ! * Get half and slide
+             tmp(1:n2,1:self%n_cmps) = tmp(n2+1:self%n,1:self%n_cmps)
+             tmp(n2+1:self%n,1:self%n_cmps) = self%c3%dequeue_data(n2)
+          else if (first_flag) then
+             
+             ! * Initial dequeue
+             tmp(1:self%n,1:self%n_cmps) = self%c3%dequeue_data(self%n)
+
+          else
+             ! * Last dequeue
+             tmp(1:n2,1:self%n_cmps) = tmp(n2+1:self%n,1:self%n_cmps)
+             tmp(n2+1:n_len,1:self%n_cmps) = self%c3%dequeue_data(n_len-n2)
+          end if
+          
+          
+          ! Main signal processing
+          processed(1:n_len, 1:self%n_cmps) = tmp(1:n_len, 1:self%n_cmps)
+          do i_cmp = 1, self%n_cmps
+             processed(1:n_len, i_cmp) = &
+                  & self%detrend(processed(1:n_len,i_cmp))
+             processed(1:n_len, i_cmp) = &
+                  & self%taper(processed(1:n_len,i_cmp))
+             processed(1:n_len, i_cmp) = &
+                  & self%envelope(processed(1:n_len, i_cmp))
+             processed(1:n_len, i_cmp) = &
+                  & self%rectangle_smoothing(processed(1:n_len, i_cmp), &
+                  & int(2.5d0 / self%dt))
+             processed(1:n_len, i_cmp) = &
+                  & self%rectangle_smoothing(processed(1:n_len, i_cmp), &
+                  & int(2.5d0 / self%dt))
+          end do
+          
+       end if
+       
+       ! << Make output >>
+       if (.not. first_flag .and. .not. last_flag) then
           call self%c3_out%enqueue_data(&
                & processed(n4+1:self%n-n4,1:self%n_cmps))
-       else
+       else if (first_flag) then
           call self%c3_out%enqueue_data(&
                & processed(1:self%n-n4,1:self%n_cmps))
+          first_flag = .false.
+       else
+          call self%c3_out%enqueue_data(&
+               & processed(n4+1:n_len,1:self%n_cmps))
        end if
-       
+    
+
+       ! << Debug output >>
        if (debug)  then
           block
             double precision :: amp_fac = 4000.d0
@@ -188,15 +216,13 @@ contains
           end block
        end if
        
-       first_window = .false.
-    end do
+       if (last_flag) then
+          exit processing
+       end if
+    end do processing
     if (debug) close(io)
     
-    ! End 
-    call self%c3_out%enqueue_data(&
-         & processed(self%n-n4+1:self%n,1:self%n_cmps))
-
-
+    
     block 
       integer :: n_out, i, n_fac, i_cmp
       double precision, allocatable :: x_out(:,:)
