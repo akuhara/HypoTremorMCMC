@@ -7,15 +7,14 @@ module cls_convertor
 
   type convertor
      private
-     type(c3_data), allocatable :: c3(:)
-     type(c3_data), allocatable :: c3_out(:)
+     type(c3_data)              :: c3
+     type(c3_data)              :: c3_out
      double precision           :: t_win
      double precision           :: t_window_interval
      double precision           :: dt
      integer                    :: n
-     integer                    :: n_sta
      integer                    :: n_cmps
-     character(line_max), allocatable :: filenames(:,:,:)
+     character(line_max), allocatable :: filenames(:,:)
 
      ! Band pass
      double precision :: f1 = 1.d0
@@ -53,21 +52,18 @@ contains
   
   !---------------------------------------------------------------------
   
-  type(convertor) function init_convertor(n_sta, n_cmps, t_win, &
+  type(convertor) function init_convertor(n_cmps, t_win, &
        & filenames) result(self)
-    integer, intent(in) :: n_sta, n_cmps
+    integer, intent(in) :: n_cmps
     double precision, intent(in) :: t_win
-    character(line_max), intent(in) :: filenames(:,:,:)
+    character(line_max), intent(in) :: filenames(:,:)
     integer :: n_files
     
     self%t_win = t_win
     self%t_window_interval = t_win * 0.5d0
-    self%n_sta = n_sta
     self%n_cmps = n_cmps
-    n_files = size(filenames(:,1,1))
-    allocate(self%c3(self%n_sta))
-    allocate(self%c3_out(self%n_sta))
-    allocate(self%filenames(n_files, self%n_cmps, self%n_sta))
+    n_files = size(filenames(:,1))
+    allocate(self%filenames(n_files, self%n_cmps))
     self%filenames = filenames
     
     return 
@@ -75,19 +71,18 @@ contains
   
   !---------------------------------------------------------------------
 
-  subroutine convertor_convert(self, i_sta)
+  subroutine convertor_convert(self)
     class(convertor), intent(inout) :: self
-    integer, intent(in) :: i_sta
     double precision, allocatable :: tmp(:, :), processed(:,:)
     integer :: n2, n4, io, it, j, irow
     logical :: first_window
-    logical, parameter :: debug = .true.
+    logical, parameter :: debug = .false.
     
     self%i_read_file = 1
-    self%c3(i_sta) = c3_data(files=self%filenames(1, 1:self%n_cmps, i_sta))
-    self%dt = self%c3(i_sta)%get_dt()
+    self%c3 = c3_data(files=self%filenames(1, 1:self%n_cmps))
+    self%dt = self%c3%get_dt()
     self%n = nint(self%t_win / self%dt)
-    self%c3_out(i_sta) = c3_data(dt=self%dt, n_cmps=self%n_cmps)
+    self%c3_out = c3_data(dt=self%dt, n_cmps=self%n_cmps)
     n2 = self%n / 2
     if (n2 + n2 /= self%n) then
        error stop "ERROR: n2 + n2 /= self%n"
@@ -117,35 +112,35 @@ contains
     it = 0
     irow = 0
     
-    write(*,*)"n_stored = ", self%c3(i_sta)%get_n_smp()
+    write(*,*)"n_stored = ", self%c3%get_n_smp()
     write(*,*)self%filenames
     first_window = .true.
     if (debug) open(newunit=io, file="windows.txt", status="replace")
     do 
-       if (self%c3(i_sta)%get_n_smp() < self%n) then
+       if (self%c3%get_n_smp() < self%n) then
           self%i_read_file = self%i_read_file + 1
           write(*,*)"i_read_file=", self%i_read_file
-          if (self%i_read_file > size(self%filenames(:,1,i_sta))) exit
+          if (self%i_read_file > size(self%filenames(:,1))) exit
 
           write(*,*)"enqueued from <", &
-               & trim(self%filenames(self%i_read_file,1,i_sta)), " / ",&
-               & trim(self%filenames(self%i_read_file,2,i_sta)), " / ",&
-               & trim(self%filenames(self%i_read_file,3,i_sta)), "> "
-          call self%c3(i_sta)%enqueue_from_files(&
-               & self%filenames(self%i_read_file,:,i_sta))
+               & trim(self%filenames(self%i_read_file,1)), " / ",&
+               & trim(self%filenames(self%i_read_file,2)), " / ",&
+               & trim(self%filenames(self%i_read_file,3)), "> "
+          call self%c3%enqueue_from_files(&
+               & self%filenames(self%i_read_file,:))
           
-          write(*,*)"n_stored = ", self%c3(i_sta)%get_n_smp()
+          write(*,*)"n_stored = ", self%c3%get_n_smp()
                
           
        end if
        if (.not. first_window) then
           tmp(1:n2,1:self%n_cmps) = tmp(n2+1:self%n,1:self%n_cmps)
-          tmp(n2+1:self%n,1:self%n_cmps) = self%c3(i_sta)%dequeue_data(n2)
+          tmp(n2+1:self%n,1:self%n_cmps) = self%c3%dequeue_data(n2)
        else
-          tmp(1:self%n,1:self%n_cmps) = self%c3(i_sta)%dequeue_data(self%n)
+          tmp(1:self%n,1:self%n_cmps) = self%c3%dequeue_data(self%n)
        end if
 
-       write(*,*)"dequeued: n_sotred = ", self%c3(i_sta)%get_n_smp()
+       write(*,*)"dequeued: n_sotred = ", self%c3%get_n_smp()
 
        
        ! Main 
@@ -165,15 +160,15 @@ contains
             processed(1:self%n, i_cmp) = &
                  & self%rectangle_smoothing(processed(1:self%n, i_cmp), &
                  & int(2.5d0 / self%dt))
-         end do
+        end do
        end block
        
        ! output
        if (.not. first_window) then
-          call self%c3_out(i_sta)%enqueue_data(&
+          call self%c3_out%enqueue_data(&
                & processed(n4+1:self%n-n4,1:self%n_cmps))
        else
-          call self%c3_out(i_sta)%enqueue_data(&
+          call self%c3_out%enqueue_data(&
                & processed(1:self%n-n4,1:self%n_cmps))
        end if
        
@@ -198,25 +193,31 @@ contains
     if (debug) close(io)
     
     ! End 
-    call self%c3_out(i_sta)%enqueue_data(&
+    call self%c3_out%enqueue_data(&
          & processed(self%n-n4+1:self%n,1:self%n_cmps))
 
 
     block 
-      integer :: n_out, i, n_fac
+      integer :: n_out, i, n_fac, i_cmp
       double precision, allocatable :: x_out(:,:)
+      character(line_max) :: out_file
       
-      open(newunit=io, file='output.txt', status='replace')
-      n_out = self%c3_out(1)%get_n_smp()
+
+      n_out = self%c3_out%get_n_smp()
       allocate(x_out(1:n_out,1:self%n_cmps))
-      x_out = self%c3_out(1)%get_data()
-      n_fac = nint(1.d0 / self%dt / self%n_sps)
-      do i = 1, n_out
-         if (mod(i,n_fac) == 1) then
-            write(io, *) (i-1) * self%dt, x_out(i, 1) / 4000.d0
-         end if
+      x_out = self%c3_out%get_data()
+      n_fac = nint(1.d0 / self%dt / self%n_sps) ! decimate
+      do i_cmp = 1, self%n_cmps
+         write(out_file,'(a,I1,a)')'output_', i_cmp, '.dat' 
+         open(newunit=io, file=out_file, access='stream', &
+              & form='unformatted', status='replace')
+         do i = 1, n_out
+            if (mod(i,n_fac) == 1) then
+               write(io) (i-1) * self%dt, x_out(i, i_cmp)
+            end if
+         end do
+         close(io)
       end do
-      close(io)
 
     end block
 

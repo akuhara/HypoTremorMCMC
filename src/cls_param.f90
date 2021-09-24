@@ -453,12 +453,12 @@ contains
   
   !---------------------------------------------------------------------
   
-  function param_get_filenames(self) result(filenames)
+  function param_get_filenames(self, i_sta) result(filenames)
     class(param), intent(inout) :: self
-    character(line_max) :: filenames(self%n_data_id, &
-         & self%n_cmps, self%n_stations)
+    integer, intent(in) :: i_sta
+    character(line_max) :: filenames(self%n_data_id, self%n_cmps)
     
-    filenames = self%filenames
+    filenames = self%filenames(:,:,i_sta)
     
     return 
   end function param_get_filenames

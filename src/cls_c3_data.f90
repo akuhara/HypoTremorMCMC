@@ -45,6 +45,8 @@ module cls_c3_data
      integer                       :: n_cmps
      double precision              :: dt
      double precision, allocatable :: data(:,:) ! size(n_smp, n_cmps)
+
+     double precision              :: fac_memory_alloc = 2.d0
     
    contains
      procedure :: read_sac     => c3_data_read_sac
@@ -153,7 +155,6 @@ contains
 
     ! Read data
     do i = 1, n
-       write(*,*)"npts=", npts, "self%n_smp", self%n_smp
        do j = 1, npts 
           read(io(i), rec=158+j) tmp_4
           self%data(self%n_smp+j, i) = dble(tmp_4)
@@ -165,10 +166,7 @@ contains
        close(io(i))
     end do
     
-    write(*,'(1x,A,I0.0)')"n_smp = ", self%n_smp
-
-    write(*,*)
-
+    
     return 
   end subroutine c3_data_read_sac
 
@@ -189,54 +187,70 @@ contains
     class(c3_data), intent(inout) :: self
     double precision, intent(in) :: x(:,:)
     double precision, allocatable :: tmp(:,:)    
-    integer :: n
+    integer :: n, n_space, n_current, n_new
 
     write(*,*)"size = ", size(x(1,:)), "n_cmps=", self%n_cmps
     if (size(x(1,:)) /= self%n_cmps) then
-
        error stop "ERROR: illegal component number in queued data"
     end if
     
     n = size(x(:,1))
-    write(*,*)"self%n_smp =", self%n_smp, "n=", n
-
+    n_current = self%n_smp
     if (allocated(self%data)) then
-       allocate(tmp(1:self%n_smp + n,1:self%n_cmps))
+       n_space = size(self%data(:,1))
+    else
+       n_space = 0
+    end if
+    
+    if (n + n_current <= n_space) then
+       
+       ! Append data without memory allocation
+       self%data(self%n_smp+1:self%n_smp+n,1:self%n_cmps) = &
+            & x(1:n,1:self%n_cmps)
+
+       self%n_smp = self%n_smp + n
+    else if (n_space > 0) then
+
+       ! Append data with memory allocation
+       
+       ! * Increase space
+       n_new = max(self%n_smp + n, int(self%fac_memory_alloc * self%n_smp))
+       allocate(tmp(1:n_new,1:self%n_cmps))
+       ! * Copy stored data
        tmp(1:self%n_smp,1:self%n_cmps) = &
             & self%data(1:self%n_smp,1:self%n_cmps)
+       ! * Append new data
        tmp(self%n_smp+1:self%n_smp+n, 1:self%n_cmps) =&
             & x(1:n, 1:self%n_cmps)
        call move_alloc(from=tmp, to=self%data)
        self%n_smp = self%n_smp + n
     else
-       allocate(tmp(1:n,1:self%n_cmps))
-       tmp = x
-       call move_alloc(from=tmp, to=self%data)
+       
+       ! ---Initial memory allocation ---
+       allocate(self%data(1:n,1:self%n_cmps))
+       self%data(1:n, 1:self%n_cmps) = x(1:n, 1:self%n_cmps)
        self%n_smp = n
     end if
-
-    
 
     return 
   end subroutine c3_data_enqueue_data
 
   !---------------------------------------------------------------------
   
-  function c3_data_dequeue_data(self, n) result(data)
+  function c3_data_dequeue_data(self, n) result(data_out)
     class(c3_data), intent(inout) :: self
     integer, intent(in) :: n
-    double precision :: data(n, self%n_cmps)
-    double precision, allocatable :: tmp(:,:)
+    double precision :: data_out(n, self%n_cmps)
+    double precision :: tmp(self%n_smp - n,self%n_cmps)
 
     if (n > self%n_smp) then
        error stop "ERROR: data length is not enough in queue"
     end if
 
-    data(1:n, 1:self%n_cmps) = self%data(1:n, 1:self%n_cmps)
-    allocate(tmp(1:self%n_smp - n, 1:self%n_cmps))
+    data_out(1:n, 1:self%n_cmps) = self%data(1:n, 1:self%n_cmps)
     tmp(1:self%n_smp - n, 1:self%n_cmps) = &
          & self%data(n + 1:self%n_smp, 1:self%n_cmps)
-    call move_alloc(from=tmp, to=self%data)
+    self%data  = tmp
     self%n_smp = self%n_smp - n
     
     return 
@@ -293,7 +307,7 @@ contains
     class(c3_data), intent(in) :: self
     double precision :: data(self%n_smp, self%n_cmps)
 
-    data = self%data
+    data = self%data(1:self%n_smp, 1:self%n_cmps)
     
     return 
   end function c3_data_get_data
