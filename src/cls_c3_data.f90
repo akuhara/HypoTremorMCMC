@@ -46,7 +46,7 @@ module cls_c3_data
      double precision              :: dt
      double precision, allocatable :: data(:,:) ! size(n_smp, n_cmps)
 
-     double precision              :: fac_memory_alloc = 2.d0
+     double precision              :: fac_memory_alloc = 4.d0
     
    contains
      procedure :: read_sac     => c3_data_read_sac
@@ -55,9 +55,11 @@ module cls_c3_data
      procedure :: dequeue_data => c3_data_dequeue_data
      procedure :: output_data  => c3_data_output_data
      procedure :: get_n_smp    => c3_data_get_n_smp
+     procedure :: get_n_cmps   => c3_data_get_n_cmps
      procedure :: get_dt       => c3_data_get_dt
      procedure :: get_data     => c3_data_get_data
      procedure :: extract_data => c3_data_extract_data
+     procedure :: calc_mean     => c3_data_calc_mean
   end type c3_data
 
   interface c3_data
@@ -189,7 +191,7 @@ contains
     double precision, allocatable :: tmp(:,:)    
     integer :: n, n_space, n_current, n_new
 
-    write(*,*)"size = ", size(x(1,:)), "n_cmps=", self%n_cmps
+    !write(*,*)"size = ", size(x(1,:)), "n_cmps=", self%n_cmps
     if (size(x(1,:)) /= self%n_cmps) then
        error stop "ERROR: illegal component number in queued data"
     end if
@@ -293,6 +295,16 @@ contains
 
   !---------------------------------------------------------------------
 
+  integer function c3_data_get_n_cmps(self) result(n_cmps)
+    class(c3_data), intent(in) :: self
+    
+    n_cmps = self%n_cmps
+    
+    return 
+  end function c3_data_get_n_cmps
+
+  !---------------------------------------------------------------------
+
   double precision function c3_data_get_dt(self) result(dt)
     class(c3_data), intent(in) :: self
     
@@ -326,5 +338,20 @@ contains
 
   !---------------------------------------------------------------------
 
+  function c3_data_calc_mean(self) result(mean)
+    class(c3_data), intent(inout) :: self
+    double precision :: mean(self%n_cmps)
+    integer :: i_cmp
+
+    do concurrent (i_cmp = 1:self%n_cmps)
+       mean(i_cmp) = sum(self%data(1:self%n_smp,i_cmp))
+       mean(i_cmp) = mean(i_cmp) / self%n_smp
+    end do
+    
+    return 
+  end function c3_data_calc_mean
+
+  !---------------------------------------------------------------------
+  
 end module cls_c3_data
     

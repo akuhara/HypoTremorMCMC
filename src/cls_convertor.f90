@@ -1,6 +1,6 @@
 module cls_convertor
-  use cls_c3_data
-  use cls_line_text
+  use cls_c3_data, only: c3_data
+  use cls_line_text, only: line_max
   use, intrinsic :: iso_c_binding
   implicit none 
   include 'fftw3.f03'
@@ -15,7 +15,9 @@ module cls_convertor
      integer                    :: n
      integer                    :: n_cmps
      character(line_max), allocatable :: filenames(:,:)
+     character(line_max)        :: station_name = "unnamed"
 
+     
      ! Band pass
      double precision :: f1 = 1.d0
      double precision :: f2 = 3.d0
@@ -42,6 +44,7 @@ module cls_convertor
      procedure :: detrend => convertor_detrend
      procedure :: taper   => convertor_taper
      procedure :: rectangle_smoothing => convertor_rectangle_smoothing
+     procedure :: get_c3_out => convertor_get_c3_out
   end type convertor
   
   interface convertor
@@ -53,10 +56,11 @@ contains
   !---------------------------------------------------------------------
   
   type(convertor) function init_convertor(n_cmps, t_win, &
-       & filenames) result(self)
+       & filenames, station_name) result(self)
     integer, intent(in) :: n_cmps
     double precision, intent(in) :: t_win
     character(line_max), intent(in) :: filenames(:,:)
+    character(line_max), intent(in), optional :: station_name
     integer :: n_files
     
     self%t_win = t_win
@@ -65,6 +69,10 @@ contains
     n_files = size(filenames(:,1))
     allocate(self%filenames(n_files, self%n_cmps))
     self%filenames = filenames
+
+    if (present(station_name)) then
+       self%station_name = station_name
+    end if
     
     return 
   end function init_convertor
@@ -234,7 +242,8 @@ contains
       x_out = self%c3_out%get_data()
       n_fac = nint(1.d0 / self%dt / self%n_sps) ! decimate
       do i_cmp = 1, self%n_cmps
-         write(out_file,'(a,I1,a)')'output_', i_cmp, '.dat' 
+         write(out_file,'(a,I1,a)')trim(self%station_name) // "_", &
+              & i_cmp, '.dat' 
          open(newunit=io, file=out_file, access='stream', &
               & form='unformatted', status='replace')
          do i = 1, n_out
@@ -385,5 +394,17 @@ contains
    
     return 
   end function convertor_taper
+  
+  !---------------------------------------------------------------------
+
+  type(c3_data) function convertor_get_c3_out(self) result(c3_out)
+    class(convertor), intent(in) :: self
+    
+    c3_out = self%c3_out
+    
+    return 
+  end function convertor_get_c3_out
+  
+  !---------------------------------------------------------------------
   
 end module cls_convertor

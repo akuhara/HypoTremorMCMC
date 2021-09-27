@@ -68,6 +68,7 @@ module cls_param
      procedure :: get_n_cmps => param_get_n_cmps
      procedure :: get_n_stations => param_get_n_stations
      procedure :: get_stations => param_get_stations
+     procedure :: get_station => param_get_station
      procedure :: get_x => param_get_x
      procedure :: get_y => param_get_y
      procedure :: get_n_data_id => param_get_n_data_id
@@ -127,7 +128,7 @@ contains
 
     ! Make filenames
     call self%make_filenames()
-    write(*,*)self%filenames
+    !write(*,*)self%filenames
 
     return 
   end function init_param
@@ -335,6 +336,21 @@ contains
     
     return 
   end function param_get_stations
+
+  !---------------------------------------------------------------------
+  
+  character(line_max) function param_get_station(self, id) result(station)
+    class(param), intent(in) :: self
+    integer, intent(in) :: id
+    
+    if (id < 1 .or. id > self%n_stations) then
+       error stop "ERROR: invalid station ID is given to param_get_station"
+    end if
+
+    station = self%stations(id)
+    
+    return 
+  end function param_get_station
 
   !---------------------------------------------------------------------
 
