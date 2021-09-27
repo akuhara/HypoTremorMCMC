@@ -3,8 +3,8 @@
 #-----------------------------------------------------------------------
 
 # Example 1. GNU fortran for debug
-FC     = mpifort
-FFLAGS = -pg -Wall -pedantic -std=f2008 -fbounds-check -O0 \
+FC     = mpif90
+FFLAGS = -pg -Wall -pedantic -fbounds-check -O0 \
          -Wuninitialized -ffpe-trap=invalid,zero,overflow -fbacktrace \
 	 -fconvert=big-endian
 
@@ -39,7 +39,7 @@ COV =
 BINDIR = ../bin
 
 HYPO_TREMOR_MCMC = $(BINDIR)/hypo_tremor_mcmc
-OBJS_HYPO_TREMOR_MCMC = \
+OBJS_HYPO_TREMOR_MCMC = mod_mpi.o \
 		hypo_tremor_mcmc.o cls_param.o cls_line_text.o \
 	 	cls_c3_data.o cls_convertor.o
 
@@ -49,7 +49,7 @@ TARGET = $(HYPO_TREMOR_MCMC)
 .PHONY: all
 all: $(TARGET)
 
-hypo_tremor_mcmc.o: cls_param.mod cls_line_text.mod cls_convertor.mod
+hypo_tremor_mcmc.o: mod_mpi.mod cls_param.mod cls_line_text.mod cls_convertor.mod
 cls_param.o: cls_line_text.mod
 cls_convertor.o: cls_c3_data.mod cls_line_text.mod
 
