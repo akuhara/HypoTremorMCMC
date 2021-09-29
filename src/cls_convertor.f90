@@ -15,7 +15,8 @@ module cls_convertor
      integer                    :: n
      integer                    :: n_cmps
      character(line_max), allocatable :: filenames(:,:)
-     character(line_max)        :: station_name = "unnamed"
+     character(line_max)        :: station_name
+     character(line_max), allocatable :: comps(:)
 
      
      ! Band pass
@@ -45,6 +46,7 @@ module cls_convertor
      procedure :: taper   => convertor_taper
      procedure :: rectangle_smoothing => convertor_rectangle_smoothing
      procedure :: get_c3_out => convertor_get_c3_out
+     procedure :: merge_components => convertor_merge_components
   end type convertor
   
   interface convertor
@@ -55,24 +57,25 @@ contains
   
   !---------------------------------------------------------------------
   
-  type(convertor) function init_convertor(n_cmps, t_win, &
-       & filenames, station_name) result(self)
-    integer, intent(in) :: n_cmps
+  type(convertor) function init_convertor(t_win, &
+       & filenames, station_name, comps) result(self)
     double precision, intent(in) :: t_win
     character(line_max), intent(in) :: filenames(:,:)
-    character(line_max), intent(in), optional :: station_name
+    character(line_max), intent(in) :: station_name
+    character(line_max), intent(in) :: comps(:)
     integer :: n_files
     
+
     self%t_win = t_win
     self%t_window_interval = t_win * 0.5d0
-    self%n_cmps = n_cmps
     n_files = size(filenames(:,1))
+    self%n_cmps = size(comps)
     allocate(self%filenames(n_files, self%n_cmps))
     self%filenames = filenames
-
-    if (present(station_name)) then
-       self%station_name = station_name
-    end if
+    self%station_name = station_name
+    allocate(self%comps(self%n_cmps))
+    self%comps = comps
+    
     
     return 
   end function init_convertor
@@ -81,7 +84,7 @@ contains
 
   subroutine convertor_convert(self)
     class(convertor), intent(inout) :: self
-    double precision, allocatable :: tmp(:, :), processed(:,:)
+    double precision, allocatable :: tmp(:, :), processed(:,:), merged(:, :)
     integer :: n2, n4, io, it, j, irow, i_cmp, n_len
     logical :: first_flag, last_flag
     logical, parameter :: debug = .false.
@@ -90,7 +93,7 @@ contains
     self%c3 = c3_data(files=self%filenames(1, 1:self%n_cmps))
     self%dt = self%c3%get_dt()
     self%n = nint(self%t_win / self%dt)
-    self%c3_out = c3_data(dt=self%dt, n_cmps=self%n_cmps)
+    self%c3_out = c3_data(dt=self%dt, n_cmps=1)
     n2 = self%n / 2
     if (n2 + n2 /= self%n) then
        error stop "ERROR: n2 + n2 /= self%n"
@@ -102,6 +105,7 @@ contains
     
     allocate(tmp(self%n, self%n_cmps))
     allocate(processed(self%n, self%n_cmps))
+    allocate(merged(self%n, 1))
     allocate(self%r_tmp(self%n))
     allocate(self%c_tmp(self%n))
     allocate(self%c_in_tmp(self%n))
@@ -133,10 +137,6 @@ contains
              self%i_read_file = self%i_read_file + 1
              if (self%i_read_file > size(self%filenames(:,1))) exit read_file
              
-             write(*,*)"enqueued from <", &
-                  & trim(self%filenames(self%i_read_file,1)), " / ",&
-                  & trim(self%filenames(self%i_read_file,2)), " / ",&
-                  & trim(self%filenames(self%i_read_file,3)), "> "
              call self%c3%enqueue_from_files(&
                   & self%filenames(self%i_read_file,:))
 
@@ -178,32 +178,33 @@ contains
           processed(1:n_len, 1:self%n_cmps) = tmp(1:n_len, 1:self%n_cmps)
           do i_cmp = 1, self%n_cmps
              processed(1:n_len, i_cmp) = &
-                  & self%detrend(processed(1:n_len,i_cmp))
+                  & self%detrend(n_len, processed(1:n_len,i_cmp))
              processed(1:n_len, i_cmp) = &
-                  & self%taper(processed(1:n_len,i_cmp))
+                  & self%taper(n_len, processed(1:n_len,i_cmp))
              processed(1:n_len, i_cmp) = &
-                  & self%envelope(processed(1:n_len, i_cmp))
+                  & self%envelope(n_len, processed(1:n_len, i_cmp))
              processed(1:n_len, i_cmp) = &
-                  & self%rectangle_smoothing(processed(1:n_len, i_cmp), &
+                  & self%rectangle_smoothing(n_len, processed(1:n_len, i_cmp), &
                   & int(2.5d0 / self%dt))
              processed(1:n_len, i_cmp) = &
-                  & self%rectangle_smoothing(processed(1:n_len, i_cmp), &
+                  & self%rectangle_smoothing(n_len, processed(1:n_len, i_cmp), &
                   & int(2.5d0 / self%dt))
           end do
-          
+          merged(1:n_len, 1) = self%merge_components(n_len, self%n_cmps, &
+               & processed(1:n_len, 1:self%n_cmps))
        end if
        
        ! << Make output >>
        if (.not. first_flag .and. .not. last_flag) then
           call self%c3_out%enqueue_data(&
-               & processed(n4+1:self%n-n4,1:self%n_cmps))
+               & merged(n4+1:self%n-n4, :))
        else if (first_flag) then
           call self%c3_out%enqueue_data(&
-               & processed(1:self%n-n4,1:self%n_cmps))
+               & merged(1:self%n-n4, :))
           first_flag = .false.
        else
           call self%c3_out%enqueue_data(&
-               & processed(n4+1:n_len,1:self%n_cmps))
+               & merged(n4+1:n_len, :))
        end if
     
 
@@ -216,7 +217,7 @@ contains
             end do
             write(io,*)
             do j = 1, self%n
-               write(io,*)(it + j) * self%dt, processed(j, 1) / amp_fac + irow
+               write(io,*)(it + j) * self%dt, merged(j, 1) / amp_fac + irow
             end do
             it = it + n2
             irow = irow + 1
@@ -238,21 +239,20 @@ contains
       
 
       n_out = self%c3_out%get_n_smp()
-      allocate(x_out(1:n_out,1:self%n_cmps))
+      allocate(x_out(1:n_out,1))
       x_out = self%c3_out%get_data()
       n_fac = nint(1.d0 / self%dt / self%n_sps) ! decimate
-      do i_cmp = 1, self%n_cmps
-         write(out_file,'(a,I1,a)')trim(self%station_name) // "_", &
-              & i_cmp, '.dat' 
-         open(newunit=io, file=out_file, access='stream', &
-              & form='unformatted', status='replace')
-         do i = 1, n_out
-            if (mod(i,n_fac) == 1) then
-               write(io) (i-1) * self%dt, x_out(i, i_cmp)
-            end if
-         end do
-         close(io)
+      write(out_file,'(a,a,a)')trim(self%station_name) // ".", &
+           & "merged", '.env' 
+      open(newunit=io, file=out_file, access='stream', &
+           & form='unformatted', status='replace')
+      do i = 1, n_out
+         if (mod(i,n_fac) == 1) then
+            write(io) (i-1) * self%dt, x_out(i, 1)
+         end if
       end do
+      close(io)
+      
 
     end block
 
@@ -262,11 +262,12 @@ contains
 
   !---------------------------------------------------------------------
   
-  function convertor_rectangle_smoothing(self, x, n_half) result(x_out)
+  function convertor_rectangle_smoothing(self, n, x, n_half) result(x_out)
     class(convertor), intent(inout) :: self
-    double precision, intent(in) :: x(self%n)
+    integer, intent(in) :: n 
+    double precision, intent(in) :: x(n)
     integer, intent(in) :: n_half
-    double precision :: x_out(self%n), s
+    double precision :: x_out(n), s
     integer :: i
 
     s = sum(x(1:n_half))
@@ -274,13 +275,13 @@ contains
        s = s + x(n_half+i)
        x_out(i) = s / dble(n_half+i)
     end do
-    do i = n_half+1, self%n-n_half
+    do i = n_half+1, n-n_half
        s = s + x(n_half+i) - x(i - n_half)
        x_out(i) = s / dble(2*n_half + 1)
     end do
-    do i = self%n-n_half+1, self%n
+    do i = n-n_half+1, n
        s = s - x(i-n_half)
-       x_out(i) = s / (self%n + n_half - i + 1)
+       x_out(i) = s / (n + n_half - i + 1)
     end do
 
 
@@ -289,21 +290,22 @@ contains
 
   !---------------------------------------------------------------------
   
-  function convertor_band_pass(self, x) result(x_out)
+  function convertor_band_pass(self, n, x) result(x_out)
     class(convertor), intent(inout) :: self
-    complex(kind(0d0)), intent(in) :: x(self%n)
-    complex(kind(0d0)) :: x_out(self%n)
+    integer, intent(in) :: n
+    complex(kind(0d0)), intent(in) :: x(n)
+    complex(kind(0d0)) :: x_out(n)
     double precision :: df, flt
     integer :: if1, if2, if3, if4, i
     double precision, parameter :: pi = acos(-1.d0)
 
-    df = 1.d0 / (self%n * self%dt)
+    df = 1.d0 / (n * self%dt)
     if1 = nint(self%f1 / df) + 1
     if2 = nint(self%f2 / df) + 1
     if3 = nint(self%f3 / df) + 1
     if4 = nint(self%f4 / df) + 1
     
-    do i = 1, self%n
+    do i = 1, n
        if (i < if1) then
           flt = 0.d0
        else if (i < if2) then
@@ -323,42 +325,44 @@ contains
   
   !---------------------------------------------------------------------
 
-  function convertor_envelope(self, x) result(env)
+  function convertor_envelope(self, n, x) result(env)
     class(convertor), intent(inout) :: self
-    double precision, intent(in) :: x(self%n)
-    double precision :: env(self%n)
+    integer, intent(in) :: n
+    double precision, intent(in) :: x(n)
+    double precision :: env(n)
     
 
 
 
-    self%r_tmp(1:self%n) = x(1:self%n)
+    self%r_tmp(1:n) = x(1:n)
     call fftw_execute_dft_r2c(self%plan_r2c, self%r_tmp, self%c_tmp)
-    self%c_tmp = self%band_pass(self%c_tmp)
+    self%c_tmp = self%band_pass(n, self%c_tmp)
     self%c_in_tmp(1) = (0.d0, 0.d0)
-    self%c_in_tmp(2:self%n/2+1) = 2.d0 * self%c_tmp(2:self%n/2+1)
-    self%c_in_tmp(self%n/2+2:self%n) = (0.d0, 0.d0)
+    self%c_in_tmp(2:n/2+1) = 2.d0 * self%c_tmp(2:n/2+1)
+    self%c_in_tmp(n/2+2:n) = (0.d0, 0.d0)
     
     call fftw_execute_dft(self%plan_c2c, self%c_in_tmp, self%c_out_tmp)
-    env(1:self%n) = abs(self%c_out_tmp(1:self%n) / self%n) 
+    env(1:n) = abs(self%c_out_tmp(1:n) / n) 
     
     return 
   end function convertor_envelope
 
   !---------------------------------------------------------------------
 
-  function convertor_detrend(self, x) result(x_out)
+  function convertor_detrend(self, n, x) result(x_out)
     class(convertor), intent(in) :: self
-    double precision, intent(in) :: x(1:self%n)
-    double precision :: x_out(1:self%n)
+    integer, intent(in) :: n
+    double precision, intent(in) :: x(n)
+    double precision :: x_out(n)
     double precision :: sxy, sxx, x_mean, y_mean, a, b
     integer :: i
-
-    x_mean = 0.5d0 * (1.d0 + dble(self%n))
-    y_mean = sum(x) / dble(self%n)
+    
+    x_mean = 0.5d0 * (1.d0 + dble(n))
+    y_mean = sum(x) / dble(n)
     sxx = 0.d0
     sxy = 0.d0
 
-    do i = 1, self%n
+    do i = 1, n
        sxx = sxx + (dble(i) - x_mean)**2
        sxy = sxy + (x(i) - y_mean) * (dble(i) - x_mean)
     end do
@@ -366,7 +370,7 @@ contains
     a = sxy / sxx
     b = y_mean - a * x_mean
     
-    do concurrent (i = 1:self%n)
+    do concurrent (i = 1:n)
        x_out(i) = x(i) - (a * dble(i) + b)
     end do
     
@@ -375,21 +379,22 @@ contains
 
   !---------------------------------------------------------------------
 
-  function convertor_taper(self, x) result(x_out)
+  function convertor_taper(self, n, x) result(x_out)
     class(convertor), intent(inout) :: self
-    double precision, intent(in) :: x(1:self%n)
-    double precision :: x_out(1:self%n)
+    integer, intent(in) :: n
+    double precision, intent(in) :: x(1:n)
+    double precision :: x_out(1:n)
     double precision, parameter :: pcnt = 0.05d0, pi = acos(-1.d0)
     integer :: nleng, i
     double precision :: fac
     
 
-    nleng = int(self%n * pcnt)
+    nleng = int(n * pcnt)
     x_out = x
     do concurrent (i = 1:nleng)
        fac = 0.5d0 * (1.d0 - cos((i - 1) * pi / nleng))
        x_out(i) = x(i) * fac
-       x_out(self%n - i + 1) = x(self%n - i + 1) * fac
+       x_out(n - i + 1) = x(n - i + 1) * fac
     end do
    
     return 
@@ -404,6 +409,23 @@ contains
     
     return 
   end function convertor_get_c3_out
+  
+  !---------------------------------------------------------------------
+
+  function convertor_merge_components(self, n, n_cmps, x) result(x_out)
+    class(convertor), intent(inout) :: self
+    integer, intent(in) :: n, n_cmps
+    double precision, intent(in) :: x(1:n,1:n_cmps)
+    double precision :: x_out(1:n)
+    double precision :: s
+    integer :: i, i_cmp
+    
+    do concurrent (i = 1:n)
+       x_out(i) = sqrt(sum(x(i,1:n_cmps)**2))
+    end do
+          
+    return 
+  end function convertor_merge_components
   
   !---------------------------------------------------------------------
   

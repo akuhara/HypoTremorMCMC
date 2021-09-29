@@ -46,16 +46,17 @@ program hypo_tremor_mcmc
   allocate(env(para%get_n_stations()))
   do i_sta = id_start, id_end
      conv = convertor(&
-          & n_cmps = para%get_n_cmps(), &
-          & t_win  = para%get_t_win() , &
-          & filenames = para%get_filenames(i_sta), &
+          & t_win        = para%get_t_win() , &
+          & filenames    = para%get_filenames(i_sta), &
+          & comps        = para%get_comps(), &
           & station_name = para%get_station(i_sta))
+
      call conv%convert()
      env(i_sta) = conv%get_c3_out()
   end do
 
   ! Detect
-  dtct = detector(env)
+  dtct = detector(env, para%get_stations())
   allocate(mean(para%get_n_cmps()))
   allocate(stdv(para%get_n_cmps()))
   do i_sta = id_start, id_end

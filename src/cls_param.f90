@@ -47,7 +47,7 @@ module cls_param
      
      ! Components
      character(line_max) :: comp_file
-     character(line_max), allocatable :: comp(:)
+     character(line_max), allocatable :: comps(:)
 
      ! File format
      character(line_max) :: data_dir, filename_format
@@ -73,7 +73,7 @@ module cls_param
      procedure :: get_y => param_get_y
      procedure :: get_n_data_id => param_get_n_data_id
      procedure :: get_data_id => param_get_data_id
-     procedure :: get_comp => param_get_comp
+     procedure :: get_comps => param_get_comps
      procedure :: get_data_dir => param_get_data_dir
      procedure :: get_filename_format => param_get_filename_format
      procedure :: make_filenames => param_make_filenames
@@ -263,11 +263,11 @@ contains
     end do
     
     rewind(io)
-    allocate(self%comp(self%n_cmps))
+    allocate(self%comps(self%n_cmps))
     
     do i = 1, self%n_cmps
-       read(io, '(a)') self%comp(i)
-       if (self%verb) write(*,'(1x,a)') trim(self%comp(i))
+       read(io, '(a)') self%comps(i)
+       if (self%verb) write(*,'(1x,a)') trim(self%comps(i))
     end do
     close(io)
     
@@ -397,14 +397,14 @@ contains
 
   !---------------------------------------------------------------------
 
-  function param_get_comp(self) result(comp)
+  function param_get_comps(self) result(comps)
     class(param), intent(in) :: self
-    character(line_max) :: comp(self%n_cmps)
+    character(line_max) :: comps(self%n_cmps)
 
-    comp = self%comp
+    comps = self%comps
 
     return 
-  end function param_get_comp
+  end function param_get_comps
 
   !---------------------------------------------------------------------
   
@@ -457,7 +457,7 @@ contains
                   else if (trim(list(i_list)) == "$COMP") then
                      self%filenames(i_id, i_cmp, i_sta) = &
                           trim(self%filenames(i_id, i_cmp, i_sta)) // &
-                          & trim(self%comp(i_cmp))
+                          & trim(self%comps(i_cmp))
                   else 
                      self%filenames(i_id, i_cmp, i_sta) = &
                           trim(self%filenames(i_id, i_cmp, i_sta)) // &

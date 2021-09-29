@@ -60,6 +60,7 @@ module cls_c3_data
      procedure :: get_data     => c3_data_get_data
      procedure :: extract_data => c3_data_extract_data
      procedure :: calc_mean     => c3_data_calc_mean
+     procedure :: calc_histogram => c3_data_calc_histogram
   end type c3_data
 
   interface c3_data
@@ -352,6 +353,31 @@ contains
   end function c3_data_calc_mean
 
   !---------------------------------------------------------------------
+
+  function c3_data_calc_histogram(self, n) result(histo)
+    class(c3_data), intent(inout) :: self
+    integer, intent(in) :: n
+    integer :: histo(n, self%n_cmps)
+    double precision :: v_min, v_max, w
+    integer :: i, j, idx
+    
+    v_min = minval(self%data(:,:))
+    v_max = maxval(self%data(:,:)) * 1.001d0
+    w = (v_max - v_min) / n
+    histo(1:n, 1:self%n_cmps) = 0
+    
+    do concurrent(i = 1:self%n_cmps)
+       do concurrent (j = 1:self%n_smp)
+          idx = int((self%data(j,i) - v_min) / w) + 1
+          histo(idx, i) = histo(idx, i) + 1
+       end do
+    end do
+    
+
+    return 
+  end function c3_data_calc_histogram
   
+  !---------------------------------------------------------------------
+
 end module cls_c3_data
     

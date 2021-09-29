@@ -53,7 +53,7 @@ hypo_tremor_mcmc.o: mod_mpi.mod cls_param.mod cls_line_text.mod cls_convertor.mo
                     cls_detector.mod
 cls_param.o: cls_line_text.mod
 cls_convertor.o: cls_c3_data.mod cls_line_text.mod
-cls_detector.o: cls_c3_data.mod
+cls_detector.o: cls_c3_data.mod cls_line_text.mod
 
 
 $(HYPO_TREMOR_MCMC): $(OBJS_HYPO_TREMOR_MCMC)
