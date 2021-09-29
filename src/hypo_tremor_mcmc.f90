@@ -7,6 +7,7 @@ program hypo_tremor_mcmc
   use cls_detector, only: detector
   implicit none 
   integer :: n_args, ierr, rank, n_procs, id_start, id_end, i_sta
+  integer, allocatable :: rank_in_charge(:)
   character(line_max) :: param_file
   type(param) :: para
   type(convertor) :: conv
@@ -39,9 +40,11 @@ program hypo_tremor_mcmc
   call mpi_barrier(MPI_COMM_WORLD, ierr)
 
   ! Get task ID
-  call get_mpi_task_id(para%get_n_stations(), id_start, id_end, debug=.true.)
+  allocate(rank_in_charge(para%get_n_stations()))
+  call get_mpi_task_id(para%get_n_stations(), id_start, id_end, &
+       & rank_in_charge, debug=.true.)
   call mpi_barrier(MPI_COMM_WORLD, ierr)
-  
+
   ! Convert raw data to smoothed envelope
   allocate(env(para%get_n_stations()))
   do i_sta = id_start, id_end
@@ -54,15 +57,45 @@ program hypo_tremor_mcmc
      call conv%convert()
      env(i_sta) = conv%get_c3_out()
   end do
+  
+  ! Gather results of all processes
+  block 
+    integer :: i_sta, ierr, n_smp, n_cmps
+    double precision :: dt
+    double precision, allocatable :: data(:,:)
+
+    do i_sta = 1, para%get_n_stations()
+       if (rank == rank_in_charge(i_sta)) then
+          n_smp  = env(i_sta)%get_n_smp()
+          n_cmps = env(i_sta)%get_n_cmps()
+          dt     = env(i_sta)%get_dt()
+          data   = env(i_sta)%get_data()
+       end if
+       call mpi_bcast(n_smp, 1, MPI_INTEGER4, rank_in_charge(i_sta), &
+            & MPI_COMM_WORLD, ierr)
+       call mpi_bcast(n_cmps, 1, MPI_INTEGER4, rank_in_charge(i_sta), &
+            & MPI_COMM_WORLD, ierr)
+       call mpi_bcast(dt, 1, MPI_DOUBLE_PRECISION, rank_in_charge(i_sta), &
+            & MPI_COMM_WORLD, ierr)
+       if (rank /= rank_in_charge(i_sta)) then
+          allocate(data(n_smp, n_cmps))
+          env(i_sta) = c3_data(dt=dt, n_cmps=n_cmps)
+       end if
+       call mpi_bcast(data, n_smp * n_cmps, MPI_DOUBLE_PRECISION, &
+            & rank_in_charge(i_sta), MPI_COMM_WORLD, ierr)
+       if (rank /= rank_in_charge(i_sta)) then
+          call env(i_sta)%enqueue_data(data)
+       end if
+       deallocate(data)
+    end do
+    
+  end block
+  
 
   ! Detect
-  dtct = detector(env, para%get_stations())
-  allocate(mean(para%get_n_cmps()))
-  allocate(stdv(para%get_n_cmps()))
-  do i_sta = id_start, id_end
-     call dtct%calc_stats(i_sta, mean, stdv)
-  end do
-  
+
+  dtct = detector(para%get_stations())
+  call dtct%calc_correlogram(env=env, t_win=300.d0, t_step = 20.d0)
   
   call mpi_finalize(ierr)
   

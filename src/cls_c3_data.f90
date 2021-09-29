@@ -54,6 +54,7 @@ module cls_c3_data
      procedure :: enqueue_data => c3_data_enqueue_data
      procedure :: dequeue_data => c3_data_dequeue_data
      procedure :: output_data  => c3_data_output_data
+     procedure :: decimate_data => c3_data_decimate_data
      procedure :: get_n_smp    => c3_data_get_n_smp
      procedure :: get_n_cmps   => c3_data_get_n_cmps
      procedure :: get_dt       => c3_data_get_dt
@@ -285,6 +286,30 @@ contains
   end subroutine c3_data_output_data
 
   !---------------------------------------------------------------------
+
+  subroutine c3_data_decimate_data(self, n_fac) 
+    class(c3_data), intent(inout) :: self
+    integer, intent(in) :: n_fac
+    double precision :: tmp(self%n_smp / n_fac, self%n_cmps)
+    integer :: i, j
+    j = 1
+    do i = 1, self%n_smp
+       if (mod(i, n_fac) == 1) then
+          tmp(j, 1:self%n_cmps) = self%data(i, 1:self%n_cmps)
+          j = j +1
+       end if
+    end do
+
+    deallocate(self%data)
+    allocate(self%data(self%n_smp / n_fac, self%n_cmps))
+    self%data = tmp
+    self%n_smp = self%n_smp / n_fac
+    self%dt = self%dt * n_fac
+    
+    return 
+  end subroutine c3_data_decimate_data
+  
+  !---------------------------------------------------------------------
   
   integer function c3_data_get_n_smp(self) result(n_smp)
     class(c3_data), intent(in) :: self
@@ -319,7 +344,7 @@ contains
   function c3_data_get_data(self) result(data)
     class(c3_data), intent(in) :: self
     double precision :: data(self%n_smp, self%n_cmps)
-
+    
     data = self%data(1:self%n_smp, 1:self%n_cmps)
     
     return 

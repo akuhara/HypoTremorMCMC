@@ -231,25 +231,24 @@ contains
     end do processing
     if (debug) close(io)
     
-    
+    ! Decimate
     block 
       integer :: n_out, i, n_fac, i_cmp
       double precision, allocatable :: x_out(:,:)
       character(line_max) :: out_file
+      n_fac = nint(1.d0 / self%dt / self%n_sps) ! decimate
+      call self%c3_out%decimate_data(n_fac)
       
-
       n_out = self%c3_out%get_n_smp()
       allocate(x_out(1:n_out,1))
       x_out = self%c3_out%get_data()
-      n_fac = nint(1.d0 / self%dt / self%n_sps) ! decimate
+
       write(out_file,'(a,a,a)')trim(self%station_name) // ".", &
            & "merged", '.env' 
       open(newunit=io, file=out_file, access='stream', &
            & form='unformatted', status='replace')
       do i = 1, n_out
-         if (mod(i,n_fac) == 1) then
-            write(io) (i-1) * self%dt, x_out(i, 1)
-         end if
+         write(io) (i-1) * self%c3_out%get_dt(), x_out(i, 1)
       end do
       close(io)
       
