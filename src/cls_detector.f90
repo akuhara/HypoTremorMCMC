@@ -2,6 +2,7 @@ module cls_detector
   use cls_c3_data, only: c3_data
   use cls_line_text, only: line_max
   use mod_mpi, only: get_mpi_task_id
+  use mod_signal_process, only: apply_taper
   use, intrinsic :: iso_c_binding
   implicit none
   include 'fftw3.f03'
@@ -95,7 +96,13 @@ contains
        end do pair_assignment
        
        print *, id, trim(self%station_names(i_sta)), trim(self%station_names(j_sta))
-       call self%run_cross_corr(env(i_sta), env(j_sta), t_win, t_step)
+       call self%run_cross_corr( &
+            & env1   = env(i_sta), &
+            & env2   = env(j_sta), &
+            & t_win  = t_win, &
+            & t_step = t_step, &
+            & sta1   = self%station_names(i_sta), &
+            & sta2   = self%station_names(j_sta))
        
     end do
     
@@ -106,11 +113,14 @@ contains
     
   !-------------------------------------------------------------------------
 
-  subroutine detector_run_cross_corr(self, env1, env2, t_win, t_step)
+  subroutine detector_run_cross_corr(self, env1, env2, t_win, t_step, &
+       & sta1, sta2)
     class(detector), intent(inout) :: self
     type(c3_data), intent(in) :: env1, env2
     double precision, intent(in) :: t_win, t_step
-    integer :: n_smp, n_smp2, n, n_step, i, n_win, i1, i2, n2
+    character(line_max), intent(in) :: sta1, sta2
+    integer :: n_smp, n_smp2, n, n_step, i, n_win, i1, i2, n2, io, j, ierr, ii
+    character(line_max) :: out_file
     double precision :: dt, dt2, l1, l2
     double precision, allocatable :: x1(:), x2(:), cc(:)
     complex(kind(0d0)), allocatable :: c1(:), c2(:)
@@ -154,37 +164,48 @@ contains
     ! Main
     i1 = 1
     i2 = n
+    write(out_file, '(a)') trim(sta1) // "." // trim(sta2) // ".corr"
+    open(newunit=io, file=out_file, access="stream", form="unformatted", &
+         & iostat=ierr, status="unknown")
+    if (ierr /= 0) then
+       error stop "ERROR: cannot create correlation output file"
+    end if
+    
     do i = 1, n_win
        write(*,*) i, "/", n_win
-       
+              
        x1(1:n) = env1%extract_data(i1, i2, 1)
-       x1(1:n) = x1(1:n) - sum(x1(1:n)) / n
+       x1(1:n) = apply_taper(n,x1(1:n))
        l1 = sqrt(sum(x1**2))
-       x1 = x1 / l1
-       self%r_tmp = x1
-       call fftw_execute_dft_r2c(self%plan_r2c, self%r_tmp, self%c_tmp)
+       !x1 = 0.d0
+       self%r_tmp = x1 / l1
+       
+       self%c_tmp = (0.d0, 0.d0) ! Not sure for reason, but seems necessary
+       call fftw_execute_dft_r2c(self%plan_r2c, self%r_tmp(1:n), self%c_tmp(1:n))
        c1 = self%c_tmp
        
        x2(1:n) = env2%extract_data(i1, i2, 1)
-       x2(1:n) = x2(1:n) - sum(x2(1:n)) / n
+       x2(1:n) = apply_taper(n,x2(1:n))
        l2 = sqrt(sum(x2**2))
-       x2 = x2 / l2
-       self%r_tmp = x2
-       call fftw_execute_dft_r2c(self%plan_r2c, self%r_tmp, self%c_tmp)
+       !x2 = 0.d0       
+       self%r_tmp = x2 / l2
+
+       self%c_tmp = (0.d0, 0.d0) ! Not sure for reason, but seems necessary
+       call fftw_execute_dft_r2c(self%plan_r2c, self%r_tmp(1:n), self%c_tmp(1:n))
        c2 = self%c_tmp
        
-       self%c2_tmp = c1(1:n) * conjg(c2(1:n))
-       call fftw_execute_dft_c2r(self%plan_c2r, self%c2_tmp, self%r2_tmp)
+       
+       self%c2_tmp = c1*conjg(c2) 
+       call fftw_execute_dft_c2r(self%plan_c2r, self%c2_tmp(1:n), self%r2_tmp(1:n))
        cc(1:n/2) = self%r2_tmp(n/2+1:n) / n
        cc(n/2+1:n) = self%r2_tmp(1:n/2) / n
+      
+       ! Output
+       do j = 1, n
+          write(io)(i-1)*t_step + 0.5d0 * t_win, (j - n/2 - 1) * dt, cc(j)
+          !write(888,*)(i-1)*t_step + 0.5d0 * t_win, (j - n/2 - 1) * dt, cc(j)
+       end do
        
-       block 
-         integer :: j
-         do j = 1, n
-            write(111,*)i, (j - n/2 - 1) * dt, cc(j)
-         end do
-       end block
-
        i1 = i1 + n_step
        i2 = i2 + n_step
 
@@ -192,6 +213,7 @@ contains
     end do
     deallocate(self%r_tmp)
     deallocate(self%c_tmp)
+    close(io)
 
     return 
   end subroutine detector_run_cross_corr

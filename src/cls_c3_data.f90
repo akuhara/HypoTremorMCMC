@@ -41,7 +41,7 @@ module cls_c3_data
   
   type c3_data
      private
-     integer                       :: n_smp 
+     integer                       :: n_smp = 0
      integer                       :: n_cmps
      double precision              :: dt
      double precision, allocatable :: data(:,:) ! size(n_smp, n_cmps)
@@ -62,6 +62,7 @@ module cls_c3_data
      procedure :: extract_data => c3_data_extract_data
      procedure :: calc_mean     => c3_data_calc_mean
      procedure :: calc_histogram => c3_data_calc_histogram
+     procedure :: apply_taper => c3_data_apply_taper
   end type c3_data
 
   interface c3_data
@@ -362,6 +363,24 @@ contains
     return 
   end function c3_data_extract_data
 
+  !---------------------------------------------------------------------
+  
+  subroutine c3_data_apply_taper(self)
+    class(c3_data), intent(inout) :: self
+    double precision, parameter :: pcnt = 0.05d0, pi = acos(-1.d0)
+    integer :: nleng, i, n
+    double precision :: fac
+
+    n = self%n_smp
+    nleng = int(n * pcnt)
+    do i = 1, nleng
+       fac = 0.5d0 * (1.d0 - cos((i-1) * pi / nleng))
+       self%data(i,:) = self%data(i,:) * fac
+       self%data(n-i+1,:) = self%data(n-i+1,:) * fac
+    end do
+    
+    return 
+  end subroutine c3_data_apply_taper
   !---------------------------------------------------------------------
 
   function c3_data_calc_mean(self) result(mean)

@@ -1,6 +1,7 @@
 module cls_convertor
   use cls_c3_data, only: c3_data
   use cls_line_text, only: line_max
+  use mod_signal_process, only: apply_taper
   use, intrinsic :: iso_c_binding
   implicit none 
   include 'fftw3.f03'
@@ -43,7 +44,7 @@ module cls_convertor
      procedure :: band_pass => convertor_band_pass
      procedure :: envelope => convertor_envelope
      procedure :: detrend => convertor_detrend
-     procedure :: taper   => convertor_taper
+     !procedure :: taper   => convertor_taper
      procedure :: rectangle_smoothing => convertor_rectangle_smoothing
      procedure :: get_c3_out => convertor_get_c3_out
      procedure :: merge_components => convertor_merge_components
@@ -180,7 +181,7 @@ contains
              processed(1:n_len, i_cmp) = &
                   & self%detrend(n_len, processed(1:n_len,i_cmp))
              processed(1:n_len, i_cmp) = &
-                  & self%taper(n_len, processed(1:n_len,i_cmp))
+                  & apply_taper(n_len, processed(1:n_len,i_cmp))
              processed(1:n_len, i_cmp) = &
                   & self%envelope(n_len, processed(1:n_len, i_cmp))
              processed(1:n_len, i_cmp) = &
@@ -235,6 +236,7 @@ contains
     block 
       integer :: n_out, i, n_fac, i_cmp
       double precision, allocatable :: x_out(:,:)
+      double precision :: dt_out
       character(line_max) :: out_file
       n_fac = nint(1.d0 / self%dt / self%n_sps) ! decimate
       call self%c3_out%decimate_data(n_fac)
@@ -242,13 +244,13 @@ contains
       n_out = self%c3_out%get_n_smp()
       allocate(x_out(1:n_out,1))
       x_out = self%c3_out%get_data()
-
+      dt_out = self%c3_out%get_dt()
       write(out_file,'(a,a,a)')trim(self%station_name) // ".", &
            & "merged", '.env' 
       open(newunit=io, file=out_file, access='stream', &
            & form='unformatted', status='replace')
       do i = 1, n_out
-         write(io) (i-1) * self%c3_out%get_dt(), x_out(i, 1)
+         write(io) (i-1) * dt_out, x_out(i, 1)
       end do
       close(io)
       
@@ -376,30 +378,30 @@ contains
     return 
   end function convertor_detrend
 
-  !---------------------------------------------------------------------
-
-  function convertor_taper(self, n, x) result(x_out)
-    class(convertor), intent(inout) :: self
-    integer, intent(in) :: n
-    double precision, intent(in) :: x(1:n)
-    double precision :: x_out(1:n)
-    double precision, parameter :: pcnt = 0.05d0, pi = acos(-1.d0)
-    integer :: nleng, i
-    double precision :: fac
-    
-
-    nleng = int(n * pcnt)
-    x_out = x
-    do concurrent (i = 1:nleng)
-       fac = 0.5d0 * (1.d0 - cos((i - 1) * pi / nleng))
-       x_out(i) = x(i) * fac
-       x_out(n - i + 1) = x(n - i + 1) * fac
-    end do
-   
-    return 
-  end function convertor_taper
-  
-  !---------------------------------------------------------------------
+  !!---------------------------------------------------------------------
+  !
+  !function convertor_taper(self, n, x) result(x_out)
+  !  class(convertor), intent(inout) :: self
+  !  integer, intent(in) :: n
+  !  double precision, intent(in) :: x(1:n)
+  !  double precision :: x_out(1:n)
+  !  double precision, parameter :: pcnt = 0.05d0, pi = acos(-1.d0)
+  !  integer :: nleng, i
+  !  double precision :: fac
+  !  
+  !
+  !  nleng = int(n * pcnt)
+  !  x_out = x
+  !  do concurrent (i = 1:nleng)
+  !     fac = 0.5d0 * (1.d0 - cos((i - 1) * pi / nleng))
+  !     x_out(i) = x(i) * fac
+  !     x_out(n - i + 1) = x(n - i + 1) * fac
+  !  end do
+  ! 
+  !  return 
+  !end function convertor_taper
+  !
+  !!---------------------------------------------------------------------
 
   type(c3_data) function convertor_get_c3_out(self) result(c3_out)
     class(convertor), intent(in) :: self
