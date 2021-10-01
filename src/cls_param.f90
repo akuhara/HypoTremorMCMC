@@ -53,8 +53,12 @@ module cls_param
      character(line_max) :: data_dir, filename_format
      character(line_max), allocatable :: filenames(:,:,:)
 
-     ! Time window 
-     double precision :: t_win
+     ! Time window for converting envelope
+     double precision :: t_win_conv
+
+     ! Time window for correlation detection
+     double precision :: t_win_corr
+     double precision :: t_step_corr
 
      ! Verbose
      logical :: verb = .false.
@@ -78,7 +82,9 @@ module cls_param
      procedure :: get_filename_format => param_get_filename_format
      procedure :: make_filenames => param_make_filenames
      procedure :: get_filenames => param_get_filenames
-     procedure :: get_t_win => param_get_t_win
+     procedure :: get_t_win_conv => param_get_t_win_conv
+     procedure :: get_t_win_corr => param_get_t_win_corr
+     procedure :: get_t_step_corr => param_get_t_step_corr
   end type param
   
   interface param
@@ -294,8 +300,12 @@ contains
        self%data_dir = val
     else if (name == "filename_format") then
        self%filename_format = val
-    else if (name == "t_win") then
-       read(val,*) self%t_win
+    else if (name == "t_win_conv") then
+       read(val,*) self%t_win_conv
+    else if (name == "t_win_corr") then
+       read(val,*) self%t_win_corr
+    else if (name == "t_step_corr") then
+       read(val,*) self%t_step_corr
     else
        if (self%verb) then
           write(0,*)"ERROR: Invalid parameter name"
@@ -485,14 +495,36 @@ contains
   end function param_get_filenames
 
   !---------------------------------------------------------------------
-  double precision function param_get_t_win(self) result(t_win)
+  
+  double precision function param_get_t_win_conv(self) result(t_win_conv)
     class(param), intent(in) :: self
     
-    t_win = self%t_win
+    t_win_conv = self%t_win_conv
 
     return 
-  end function param_get_t_win
+  end function param_get_t_win_conv
 
   !---------------------------------------------------------------------
+
+  double precision function param_get_t_win_corr(self) result(t_win_corr)
+    class(param), intent(in) :: self
+    
+    t_win_corr = self%t_win_corr
+
+    return 
+  end function param_get_t_win_corr
+
+  !---------------------------------------------------------------------
+  
+  double precision function param_get_t_step_corr(self) result(t_step_corr)
+    class(param), intent(in) :: self
+    
+    t_step_corr = self%t_step_corr
+
+    return 
+  end function param_get_t_step_corr
+
+  !---------------------------------------------------------------------
+  
 
 end module cls_param

@@ -14,7 +14,6 @@ program hypo_tremor_mcmc
   type(c3_data), allocatable :: env(:)
   type(detector) :: dtct
   logical :: verb
-  double precision, allocatable :: mean(:), stdv(:)
   
   call mpi_init(ierr)
   call mpi_comm_size(MPI_COMM_WORLD, n_procs, ierr)
@@ -49,9 +48,9 @@ program hypo_tremor_mcmc
   allocate(env(para%get_n_stations()))
   do i_sta = id_start, id_end
      conv = convertor(&
-          & t_win        = para%get_t_win() , &
+          & t_win        = para%get_t_win_conv() ,    &
           & filenames    = para%get_filenames(i_sta), &
-          & comps        = para%get_comps(), &
+          & comps        = para%get_comps(),          &
           & station_name = para%get_station(i_sta))
 
      call conv%convert()
@@ -94,8 +93,14 @@ program hypo_tremor_mcmc
 
   ! Detect
 
-  dtct = detector(para%get_stations())
-  call dtct%calc_correlogram(env=env, t_win=300.d0, t_step = 20.d0)
+  dtct = detector(&
+       & station_names = para%get_stations(),    &
+       & t_win         = para%get_t_win_corr(),  &
+       & t_step        = para%get_t_step_corr(), &
+       & dt            = env(1)%get_dt(),        &
+       & n_smp         = env(1)%get_n_smp()      &
+       & )
+  call dtct%calc_correlogram(env=env)
   
   call mpi_finalize(ierr)
   
