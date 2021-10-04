@@ -398,11 +398,11 @@ contains
 
   !---------------------------------------------------------------------
 
-  function c3_data_calc_histogram(self, n) result(histo)
+  subroutine c3_data_calc_histogram(self, n, histo, v_min, v_max, w)
     class(c3_data), intent(inout) :: self
     integer, intent(in) :: n
-    integer :: histo(n, self%n_cmps)
-    double precision :: v_min, v_max, w
+    integer, intent(out) :: histo(n, self%n_cmps)
+    double precision, intent(out) :: v_min, v_max, w
     integer :: i, j, idx
     
     v_min = minval(self%data(:,:))
@@ -419,7 +419,7 @@ contains
     
 
     return 
-  end function c3_data_calc_histogram
+  end subroutine c3_data_calc_histogram
   
   !---------------------------------------------------------------------
 

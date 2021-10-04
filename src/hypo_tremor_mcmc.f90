@@ -101,6 +101,7 @@ program hypo_tremor_mcmc
        & n_smp         = env(1)%get_n_smp()      &
        & )
   call dtct%calc_correlogram(env=env)
+  !call dtct%eval_correlogram(alpha=0.05d0)
   
   call mpi_finalize(ierr)
   

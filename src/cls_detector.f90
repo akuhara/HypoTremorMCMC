@@ -13,9 +13,6 @@ module cls_detector
      integer :: n_stations
      character(line_max), allocatable :: station_names(:)
 
-     !integer :: n_histo = 9000
-     !double precision :: thred = 0.95d0
-     
      type(C_PTR)                            :: plan_r2c, plan_c2r
      real(C_DOUBLE), allocatable            :: r_tmp(:), r2_tmp(:)
      complex(C_DOUBLE_COMPLEX), allocatable :: c_tmp(:), c2_tmp(:)
@@ -29,13 +26,20 @@ module cls_detector
      integer :: n_step     ! # of samples in a window interval
      integer :: n          ! # of samples in a time window
 
-     ! Results
+
+     double precision :: cc_thred = 0.85d0
      double precision, allocatable :: cc_max_sum(:)
      
+     integer :: n_detect = 0
+     
+     logical :: debug = .false.
+
    contains
      !procedure :: calc_stats => detector_calc_stats
      procedure :: calc_correlogram => detector_calc_correlogram
      procedure :: run_cross_corr   => detector_run_cross_corr
+     procedure :: measure_lag_time => detector_measure_lag_time
+     !procedure :: eval_correlogram => detector_eval_correlogram
      
   end type detector
   
@@ -92,6 +96,46 @@ contains
     return 
   end function init_detector
   
+  !-------------------------------------------------------------------------
+  !subroutine detector_eval_correlogram(self, alpha)
+  !  class(detector), intent(inout) :: self
+  !  double precision, intent(in) :: alpha
+  !  type(c3_data) :: cc
+  !  integer :: k, count, i, rank, ierr, io
+  !  integer, allocatable :: histo(:,:)
+  !  double precision :: cc_min, cc_max, del_cc
+  !  
+  !  call mpi_comm_rank(MPI_COMM_WORLD, rank, ierr)
+  !  
+  !  ! Get CC threthold 
+  !  if (rank == 0) then
+  !     cc = c3_data(n_cmps=1, dt=self%t_step)
+  !     call cc%enqueue_data(self%cc_max_sum)
+  !     allocate(histo(self%n_histo,1))
+  !     call cc%calc_histogram(self%n_histo, histo, cc_min, cc_max, del_cc)
+  !     
+  !     
+  !     k = int((1.d0 - alpha) * cc%get_n_smp())
+  !     count = 0
+  !     do i = self%n_histo, 1, -1
+  !        count = count + histo(i, 1)
+  !        if (count >= k) then
+  !           exit
+  !        end if
+  !     end do
+  !     
+  !     open(newunit=io, file='cc_sum.histo', status="replace", &
+  !          & iostat=ierr, access='stream')
+  !     do i = 1, self%n_histo
+  !        write(io) (i-1) * del_cc + cc_min, histo(i, 1)
+  !     end do
+  !     close(io)
+  !  end if
+  !
+  !  
+  !  return 
+  !end subroutine detector_eval_correlogram
+  !  
   !-------------------------------------------------------------------------
 
   subroutine detector_calc_correlogram(self, env)
@@ -165,7 +209,7 @@ contains
     call mpi_comm_rank(MPI_COMM_WORLD, rank, ierr)
     if (rank == 0) then
        self%cc_max_sum(1:self%n_win) = self%cc_max_sum(1:self%n_win) / n_pair
-       open(newunit=io, file="cc_sum.dat", status="unknown", &
+       open(newunit=io, file="cc_sum.dat", status="replace", &
             & form="unformatted", access="stream", iostat=ierr)
        if (ierr /= 0) then
           error stop "ERROR: cannot create cc_sum.dat"
@@ -186,9 +230,9 @@ contains
     class(detector), intent(inout) :: self
     type(c3_data), intent(in) :: env1, env2
     character(line_max), intent(in) :: sta1, sta2
-    integer :: n, i, i1, i2, n2, io, j, ierr
-    character(line_max) :: out_file
-    double precision :: l1, l2
+    integer :: n, i, i1, i2, n2, io, j, ierr, io2, i_corr_max
+    character(line_max) :: out_file, out_file2
+    double precision :: l1, l2, cc_max
     double precision, allocatable :: x1(:), x2(:), cc(:)
     complex(kind(0d0)), allocatable :: c1(:), c2(:)
     
@@ -209,9 +253,14 @@ contains
     i1 = 1
     i2 = n
     write(out_file, '(a)') trim(sta1) // "." // trim(sta2) // ".corr"
-    print *, trim(out_file)
+    write(out_file2, '(a)') trim(sta1) // "." // trim(sta2) // ".max_corr"
+    print *, trim(out_file), "n_win=", self%n_win, "n=", n
     open(newunit=io, file=out_file, access="stream", form="unformatted", &
-         & iostat=ierr, status="unknown")
+         & iostat=ierr, status="replace")
+    open(newunit=io2, file=out_file2, access="stream", form="unformatted", &
+         & iostat=ierr, status="replace")
+    !open(newunit=io, file=out_file, form="formatted", &
+    !     & iostat=ierr, status="replace")
     if (ierr /= 0) then
        error stop "ERROR: cannot create correlation output file"
     end if
@@ -237,25 +286,122 @@ contains
        c2 = self%c_tmp
        
        
-       self%c2_tmp = c1*conjg(c2) 
+       self%c2_tmp = conjg(c1)*c2
        call fftw_execute_dft_c2r(self%plan_c2r, self%c2_tmp(1:n), self%r2_tmp(1:n))
        cc(1:n/2) = self%r2_tmp(n/2+1:n) / n
        cc(n/2+1:n) = self%r2_tmp(1:n/2) / n
-       self%cc_max_sum(i) = self%cc_max_sum(i) + maxval(cc)
+       cc_max = maxval(cc)
+       
+       if (cc_max >= self%cc_thred) then
+          self%n_detect = self%n_detect + 1
+          i_corr_max = maxloc(cc,dim=1)
+          i_corr_max = i_corr_max - (n/2 + 1)
+          !Note : i_corr_max = 1 corresponds to zero-lag time
+          call self%measure_lag_time(x1, x2, l1, l2, i_corr_max, sta1, sta2)
+       end if
+
+
+
+       self%cc_max_sum(i) = self%cc_max_sum(i) + cc_max
        
        ! Output to file
        do j = 1, n
           write(io)(i-1)*self%t_step + 0.5d0 * self%t_win, &
                & (j - n/2 - 1) * self%dt, cc(j)
+          !write(io,*)(i-1)*self%t_step + 0.5d0 * self%t_win, &
+          !     & (j - n/2 - 1) * self%dt, cc(j)
        end do
        
+       write(io2)(i-1)*self%t_step + 0.5d0 * self%t_win, cc_max
+
+
+
+
        i1 = i1 + self%n_step
        i2 = i2 + self%n_step
     end do
     close(io)
+    close(io2)
 
     return 
   end subroutine detector_run_cross_corr
+
+
+  !-------------------------------------------------------------------------
+  
+  subroutine detector_measure_lag_time(self, x1, x2, l1, l2, i_corr_max, &
+       & sta1, sta2)
+    class(detector), intent(inout) :: self
+    double precision, intent(in) :: x1(self%n), x2(self%n)
+    double precision, intent(in) :: l1, l2
+    integer, intent(in) :: i_corr_max
+    character(line_max), intent(in) :: sta1, sta2
+    character(line_max) :: out_file
+    double precision :: x_sum(self%n), sigma
+    double precision :: err(self%n), acf(self%n), l(self%n, self%n)
+    integer :: j, io, i
+    double precision, parameter :: pi = acos(-1.d0)
+    
+    ! Note : i_corr_max = 1 corresponds to zero-lag time
+
+    x_sum = 0.d0
+    err = 0.d0
+    !write(*,*)"I_corr_max=", i_corr_max
+    do j = 1, self%n
+       if (j+i_corr_max < 1 .or. j+i_corr_max > self%n) cycle
+       x_sum(j) = (x1(j)/ l1 + x2(j+i_corr_max) / l2) * 0.5d0
+       err(j) = x_sum(j) - x1(j) / l1
+    end do
+    err = err / sqrt(sum(err**2))
+    sigma = sqrt(sum(err**2) / self%n)
+
+    self%c_tmp = (0.d0, 0.d0) ! Not sure for reason, but seems necessary
+    self%r_tmp = err
+    call fftw_execute_dft_r2c(self%plan_r2c, self%r_tmp, self%c_tmp)
+    
+    self%c2_tmp = conjg(self%c_tmp)*self%c_tmp
+    call fftw_execute_dft_c2r(self%plan_c2r, self%c2_tmp, self%r2_tmp)
+    acf = 0.d0
+    do j = 1, self%n
+       if (self%r2_tmp(j) < 0.d0) exit
+       acf(j) = self%r2_tmp(j) / self%n
+    end do
+
+    do concurrent (i=1:self%n)
+       do j = 1, self%n
+          l(j,i) = acf(abs(j-i) + 1) * sigma * sigma
+       end do
+    end do
+
+    if (self%debug) then
+       write(out_file,'(a,I6.6,a)') trim(sta1) // "." // trim(sta2) // ".", &
+            self%n_detect, ".dat"
+       open(newunit=io, file=out_file, status="replace")
+       do j = 1, self%n
+          write(io,*)j, x1(j) / l1
+       end do
+       write(io,*)
+       write(io,*)
+       do j = 1, self%n
+          write(io,*)j-i_corr_max, x2(j) / l2
+       end do
+       write(io,*)
+       write(io,*)
+       do j = abs(i_corr_max) + 1, self%n
+          write(io,*)j, x_sum(j)
+       end do
+       write(io,*)
+       write(io,*)
+       do j = 1, self%n
+          write(io,*)j, acf(j) * sigma 
+       end do
+       
+       close(io)
+    end if
+
+
+    return 
+  end subroutine detector_measure_lag_time
 
   !-------------------------------------------------------------------------
   !
