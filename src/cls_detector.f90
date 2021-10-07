@@ -3,6 +3,7 @@ module cls_detector
   use cls_line_text, only: line_max
   use mod_mpi
   use mod_signal_process, only: apply_taper
+  use mod_sort, only: quick_sort
   use, intrinsic :: iso_c_binding
   implicit none
   include 'fftw3.f03'
@@ -27,9 +28,7 @@ module cls_detector
      integer :: n          ! # of samples in a time window
 
 
-     double precision :: cc_thred = 0.85d0
-     double precision, allocatable :: cc_max_sum(:)
-     
+     double precision :: alpha = 0.99d0
      integer :: n_detect = 0
      
      logical :: debug = .false.
@@ -39,7 +38,7 @@ module cls_detector
      procedure :: calc_correlogram => detector_calc_correlogram
      procedure :: run_cross_corr   => detector_run_cross_corr
      procedure :: measure_lag_time => detector_measure_lag_time
-     !procedure :: eval_correlogram => detector_eval_correlogram
+     procedure :: eval_correlogram => detector_eval_correlogram
      
   end type detector
   
@@ -79,9 +78,6 @@ contains
     self%n_step = nint(self%t_step / self%dt) 
     self%n_win  = int((self%n_smp - self%n)  / self%n_step)
     
-    allocate(self%cc_max_sum(self%n_win))
-    self%cc_max_sum = 0.d0
-
     allocate(self%r_tmp(self%n))
     allocate(self%c_tmp(self%n))
     allocate(self%r2_tmp(self%n))
@@ -95,47 +91,7 @@ contains
     
     return 
   end function init_detector
-  
-  !-------------------------------------------------------------------------
-  !subroutine detector_eval_correlogram(self, alpha)
-  !  class(detector), intent(inout) :: self
-  !  double precision, intent(in) :: alpha
-  !  type(c3_data) :: cc
-  !  integer :: k, count, i, rank, ierr, io
-  !  integer, allocatable :: histo(:,:)
-  !  double precision :: cc_min, cc_max, del_cc
-  !  
-  !  call mpi_comm_rank(MPI_COMM_WORLD, rank, ierr)
-  !  
-  !  ! Get CC threthold 
-  !  if (rank == 0) then
-  !     cc = c3_data(n_cmps=1, dt=self%t_step)
-  !     call cc%enqueue_data(self%cc_max_sum)
-  !     allocate(histo(self%n_histo,1))
-  !     call cc%calc_histogram(self%n_histo, histo, cc_min, cc_max, del_cc)
-  !     
-  !     
-  !     k = int((1.d0 - alpha) * cc%get_n_smp())
-  !     count = 0
-  !     do i = self%n_histo, 1, -1
-  !        count = count + histo(i, 1)
-  !        if (count >= k) then
-  !           exit
-  !        end if
-  !     end do
-  !     
-  !     open(newunit=io, file='cc_sum.histo', status="replace", &
-  !          & iostat=ierr, access='stream')
-  !     do i = 1, self%n_histo
-  !        write(io) (i-1) * del_cc + cc_min, histo(i, 1)
-  !     end do
-  !     close(io)
-  !  end if
-  !
-  !  
-  !  return 
-  !end subroutine detector_eval_correlogram
-  !  
+
   !-------------------------------------------------------------------------
 
   subroutine detector_calc_correlogram(self, env)
@@ -144,7 +100,6 @@ contains
     integer :: i_sta, j_sta, n_pair, n_sta, i, j, io, ierr
     integer :: id_start, id_end, id, rank
     integer :: count
-    double precision, allocatable :: tmp(:)
 
     n_sta = self%n_stations
     if (size(env) /= n_sta) then
@@ -200,25 +155,15 @@ contains
        
     end do
     
-    allocate(tmp(self%n_win))
-    tmp(1:self%n_win) = self%cc_max_sum(1:self%n_win)
-    self%cc_max_sum = 0.d0
-    call mpi_allreduce(tmp(1:self%n_win), self%cc_max_sum(1:self%n_win), &
-         & self%n_win, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierr)
     
     call mpi_comm_rank(MPI_COMM_WORLD, rank, ierr)
     if (rank == 0) then
-       self%cc_max_sum(1:self%n_win) = self%cc_max_sum(1:self%n_win) / n_pair
        open(newunit=io, file="cc_sum.dat", status="replace", &
             & form="unformatted", access="stream", iostat=ierr)
        if (ierr /= 0) then
           error stop "ERROR: cannot create cc_sum.dat"
        end if
        
-       do i = 1, self%n_win
-          write(io)(i-1)*self%t_step + 0.5d0 * self%t_win, &
-               & self%cc_max_sum(i)
-       end do
     end if
     
     return 
@@ -233,7 +178,7 @@ contains
     integer :: n, i, i1, i2, n2, io, j, ierr, io2, i_corr_max
     character(line_max) :: out_file, out_file2
     double precision :: l1, l2, cc_max
-    double precision, allocatable :: x1(:), x2(:), cc(:)
+    double precision, allocatable :: x1(:), x2(:), cc(:,:)
     complex(kind(0d0)), allocatable :: c1(:), c2(:)
     
     
@@ -247,8 +192,8 @@ contains
     allocate(x2(n))
     allocate(c1(n))
     allocate(c2(n))
-    allocate(cc(n))
-
+    allocate(cc(n,self%n_win))
+    
     ! Main
     i1 = 1
     i2 = n
@@ -288,34 +233,25 @@ contains
        
        self%c2_tmp = conjg(c1)*c2
        call fftw_execute_dft_c2r(self%plan_c2r, self%c2_tmp(1:n), self%r2_tmp(1:n))
-       cc(1:n/2) = self%r2_tmp(n/2+1:n) / n
-       cc(n/2+1:n) = self%r2_tmp(1:n/2) / n
-       cc_max = maxval(cc)
+       cc(1:n/2,i) = self%r2_tmp(n/2+1:n) / n
+       cc(n/2+1:n,i) = self%r2_tmp(1:n/2) / n
+       cc_max = maxval(cc(:,i))
        
-       if (cc_max >= self%cc_thred) then
-          self%n_detect = self%n_detect + 1
-          i_corr_max = maxloc(cc,dim=1)
-          i_corr_max = i_corr_max - (n/2 + 1)
-          !Note : i_corr_max = 1 corresponds to zero-lag time
-          call self%measure_lag_time(x1, x2, l1, l2, i_corr_max, sta1, sta2)
-       end if
+       !if (cc_max(i) >= self%cc_thred) then
+       !   self%n_detect = self%n_detect + 1
+       !   i_corr_max = maxloc(cc,dim=1)
+       !   i_corr_max = i_corr_max - (n/2 + 1)
+       !   !Note : i_corr_max = 1 corresponds to zero-lag time
+       !   call self%measure_lag_time(x1, x2, l1, l2, i_corr_max, sta1, sta2)
+       !end if
 
-
-
-       self%cc_max_sum(i) = self%cc_max_sum(i) + cc_max
-       
        ! Output to file
        do j = 1, n
           write(io)(i-1)*self%t_step + 0.5d0 * self%t_win, &
-               & (j - n/2 - 1) * self%dt, cc(j)
-          !write(io,*)(i-1)*self%t_step + 0.5d0 * self%t_win, &
-          !     & (j - n/2 - 1) * self%dt, cc(j)
+               & (j - n/2 - 1) * self%dt, cc(j,i)
        end do
        
        write(io2)(i-1)*self%t_step + 0.5d0 * self%t_win, cc_max
-
-
-
 
        i1 = i1 + self%n_step
        i2 = i2 + self%n_step
@@ -323,10 +259,45 @@ contains
     close(io)
     close(io2)
 
+    call self%eval_correlogram(cc, sta1, sta2)
+    
+
     return 
   end subroutine detector_run_cross_corr
 
+  !-------------------------------------------------------------------------
 
+  subroutine detector_eval_correlogram(self, cc, sta1, sta2)
+    class(detector), intent(inout) :: self
+    double precision, intent(in) :: cc(self%n, self%n_win)
+    character(line_max), intent(in) :: sta1, sta2
+    double precision :: tmp(self%n_win * self%n), cc_thred
+    integer :: i, io, ierr
+    character(line_max) :: out_file
+    
+
+    
+    tmp = [cc]
+    call quick_sort(tmp, 1, self%n*self%n_win)
+    
+    cc_thred = tmp(int(self%n*self%n_win*self%alpha))
+
+    
+    write(out_file,'(A)')trim(sta1) // "." //trim(sta2) // ".thred"
+    open(newunit=io, file=out_file, status="replace", form='formatted', &
+         & iostat=ierr)
+    if (ierr /= 0) then
+       error stop "ERROR: cannot creat threshold output file" 
+    end if
+    
+    write(io,*)cc_thred
+    close(io)
+
+
+    return 
+  end subroutine detector_eval_correlogram
+    
+    
   !-------------------------------------------------------------------------
   
   subroutine detector_measure_lag_time(self, x1, x2, l1, l2, i_corr_max, &
@@ -402,65 +373,6 @@ contains
 
     return 
   end subroutine detector_measure_lag_time
-
-  !-------------------------------------------------------------------------
-  !
-  !subroutine detector_calc_stats(self, i_sta, mean, stdv)
-  !  class(detector), intent(inout) :: self
-  !  integer, intent(in) :: i_sta
-  !  double precision, allocatable, intent(out) :: mean(:), stdv(:)
-  !  double precision, allocatable :: pcnt(:)
-  !  integer :: n_cmps, n_smp, i_cmp, io, i, k, count
-  !  integer, allocatable :: histo(:,:)
-  !  character(line_max) :: out_file
-  !
-  !  if (i_sta < 0 .or. i_sta > self%n_stations) then
-  !     error stop "ERROR: invalid station ID is given to detector_calc_stats"
-  !  end if
-  !  
-  !  n_cmps = self%c3(i_sta)%get_n_cmps()
-  !  n_smp  = self%c3(i_sta)%get_n_smp()
-  !  allocate(histo(self%n_histo, n_cmps))
-  !  allocate(mean(n_cmps))
-  !  allocate(stdv(n_cmps))
-  !  
-  !  mean = self%c3(i_sta)%calc_mean()
-  !
-  !  ! histogram
-  !  histo = self%c3(i_sta)%calc_histogram(self%n_histo)
-  !  do i_cmp = 1, n_cmps
-  !     print *, "mean :", i_cmp, mean(i_cmp)
-  !     
-  !  end do
-  !
-  !  out_file = trim(self%station_names(i_sta)) // "_1.histo" 
-  !  open(newunit=io, file=out_file, status='unknown')
-  !  do i = 1, self%n_histo
-  !     write(io, *)i, histo(i, 1)
-  !  end do
-  !  close(io)
-  !
-  !
-  !  ! Rough estimation of percentile
-  !  allocate(pcnt(n_cmps))
-  !  k = int((1.d0 - self%thred) * n_smp)
-  !
-  !  do i_cmp = 1, n_cmps
-  !     count = 0
-  !     do i = self%n_histo, 1, -1
-  !        count = count + histo(i, i_cmp)
-  !        if (count >= k) then
-  !           pcnt(i_cmp) = i
-  !           exit
-  !        end if
-  !     end do
-  !     print *, "pcnt :",  trim(self%station_names(i_sta)), " ", &
-  !          & i_cmp, pcnt(i_cmp)
-  !  end do
-  !
-  !
-  !  return 
-  !end subroutine detector_calc_stats
 
   !-------------------------------------------------------------------------
   
