@@ -38,26 +38,35 @@ LAPACK = -llapack -lblas
 COV =
 BINDIR = ../bin
 HYPO_TREMOR_DETECT = $(BINDIR)/hypo_tremor_detect
+HYPO_TREMOR_MEASURE = $(BINDIR)/hypo_tremor_measure
 OBJS_HYPO_TREMOR_DETECT = mod_mpi.o \
 		hypo_tremor_detect.o cls_param.o cls_line_text.o \
 	 	cls_c3_data.o cls_convertor.o cls_detector.o \
                 mod_signal_process.o mod_sort.o
+OBJS_HYPO_TREMOR_MEASURE = mod_mpi.o \
+                hypo_tremor_measure.o cls_param.o cls_line_text.o \
+                cls_measurer.o
 
 
-TARGET = $(HYPO_TREMOR_DETECT)
+TARGET = $(HYPO_TREMOR_DETECT) $(HYPO_TREMOR_MEASURE)
 
 .PHONY: all
 all: $(TARGET)
 
 hypo_tremor_detect.o: mod_mpi.mod cls_param.mod cls_line_text.mod cls_convertor.mod \
                     cls_detector.mod
+hypo_tremor_measure.o: mod_mpi.mod cls_param.mod cls_line_text.mod cls_measurer.mod
 cls_param.o: cls_line_text.mod
 cls_convertor.o: cls_c3_data.mod cls_line_text.mod mod_signal_process.mod
 cls_detector.o: cls_c3_data.mod cls_line_text.mod mod_signal_process.mod \
                 mod_sort.mod
-
+cls_measurer.o: cls_line_text.mod
 
 $(HYPO_TREMOR_DETECT): $(OBJS_HYPO_TREMOR_DETECT)
+	@if [ ! -d $(BINDIR) ]; then mkdir $(BINDIR); fi
+	$(FC) $(FFLAGS) $(COV) $(FFTW) $^ -o $@  
+
+$(HYPO_TREMOR_MEASURE): $(OBJS_HYPO_TREMOR_MEASURE)
 	@if [ ! -d $(BINDIR) ]; then mkdir $(BINDIR); fi
 	$(FC) $(FFLAGS) $(COV) $(FFTW) $^ -o $@  
 
