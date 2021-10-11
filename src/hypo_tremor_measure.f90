@@ -35,8 +35,12 @@ program main
   
   msr = measurer(&
        & station_names = para%get_stations(), & 
+       & t_win         = para%get_t_win_corr(), &
+       & t_step        = para%get_t_step_corr(), &
+       & n_pair_thred  = para%get_n_pair_thred(), &
        & verb          = verb)
-
+  call msr%scan_cc()
+  call msr%measure_lag_time()
   
   call mpi_finalize(ierr)
   

@@ -60,7 +60,7 @@ cls_param.o: cls_line_text.mod
 cls_convertor.o: cls_c3_data.mod cls_line_text.mod mod_signal_process.mod
 cls_detector.o: cls_c3_data.mod cls_line_text.mod mod_signal_process.mod \
                 mod_sort.mod
-cls_measurer.o: cls_line_text.mod
+cls_measurer.o: cls_line_text.mod mod_mpi.mod
 
 $(HYPO_TREMOR_DETECT): $(OBJS_HYPO_TREMOR_DETECT)
 	@if [ ! -d $(BINDIR) ]; then mkdir $(BINDIR); fi

@@ -60,8 +60,14 @@ module cls_param
      double precision :: t_win_corr
      double precision :: t_step_corr
 
+
+     ! Detection criteria
+     integer :: n_pair_thred
+
      ! Verbose
      logical :: verb = .false.
+
+     
 
    contains
      procedure :: read_param_file => param_read_param_file
@@ -85,6 +91,7 @@ module cls_param
      procedure :: get_t_win_conv => param_get_t_win_conv
      procedure :: get_t_win_corr => param_get_t_win_corr
      procedure :: get_t_step_corr => param_get_t_step_corr
+     procedure :: get_n_pair_thred => param_get_n_pair_thred
   end type param
   
   interface param
@@ -306,6 +313,8 @@ contains
        read(val,*) self%t_win_corr
     else if (name == "t_step_corr") then
        read(val,*) self%t_step_corr
+    else if (name == "n_pair_thred") then
+       read(val,*) self%n_pair_thred
     else
        if (self%verb) then
           write(0,*)"ERROR: Invalid parameter name"
@@ -523,6 +532,16 @@ contains
 
     return 
   end function param_get_t_step_corr
+
+  !---------------------------------------------------------------------
+
+  integer function param_get_n_pair_thred(self) result(n_pair_thred)
+    class(param), intent(in) :: self
+    
+    n_pair_thred = self%n_pair_thred
+
+    return 
+  end function param_get_n_pair_thred
 
   !---------------------------------------------------------------------
   
