@@ -38,7 +38,7 @@ module cls_param
      character(line_max) :: station_file
      character(line_max), allocatable :: stations(:)
      integer :: n_stations
-     double precision, allocatable :: x(:), y(:), z(:)
+     double precision, allocatable :: slat(:), slon(:), sdep(:)
 
      ! Data ID
      character(line_max) :: data_id_file
@@ -79,8 +79,8 @@ module cls_param
      procedure :: get_n_stations => param_get_n_stations
      procedure :: get_stations => param_get_stations
      procedure :: get_station => param_get_station
-     procedure :: get_x => param_get_x
-     procedure :: get_y => param_get_y
+     procedure :: get_slat => param_get_slat
+     procedure :: get_slon => param_get_slon
      procedure :: get_n_data_id => param_get_n_data_id
      procedure :: get_data_id => param_get_data_id
      procedure :: get_comps => param_get_comps
@@ -203,16 +203,16 @@ contains
     ! Allocate
     self%n_stations = n_sta
     allocate(self%stations(n_sta))
-    allocate(self%x(n_sta))
-    allocate(self%y(n_sta)) 
-    allocate(self%z(n_sta))
+    allocate(self%slat(n_sta))
+    allocate(self%slon(n_sta)) 
+    allocate(self%sdep(n_sta))
     ! Read lines
     rewind(io)
     do i = 1, n_sta
-       read(io, *) self%stations(i), self%x(i), self%y(i), self%z(i)
+       read(io, *) self%stations(i), self%slat(i), self%slon(i), self%sdep(i)
        if (self%verb) then
           write(*,'(1x,a,3F9.3)')trim(self%stations(i)), &
-               & self%x(i), self%y(i), self%z(i)
+               & self%slat(i), self%slon(i), self%sdep(i)
        end if
     end do
     close(io)
@@ -373,25 +373,25 @@ contains
 
   !---------------------------------------------------------------------
 
-  function param_get_x(self) result(x)
+  function param_get_slat(self) result(slat)
     class(param), intent(in) :: self
-    double precision :: x(self%n_stations)
+    double precision :: slat(self%n_stations)
 
-    x = self%x
+    slat = self%slat
     
     return 
-  end function param_get_x
+  end function param_get_slat
 
   !---------------------------------------------------------------------
 
-  function param_get_y(self) result(y)
+  function param_get_slon(self) result(slon)
     class(param), intent(in) :: self
-    double precision :: y(self%n_stations)
+    double precision :: slon(self%n_stations)
 
-    y = self%y
+    slon = self%slon
     
     return 
-  end function param_get_y
+  end function param_get_slon
 
   !---------------------------------------------------------------------
   

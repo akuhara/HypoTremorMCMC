@@ -2,8 +2,11 @@ module cls_measurer
   use mod_mpi
   use cls_line_text, only: line_max
   use, intrinsic :: iso_fortran_env, only: iostat_end
+  use, intrinsic :: iso_c_binding
   implicit none
-  
+  include 'fftw3.f03'
+
+
   type measurer
      private
 
@@ -18,6 +21,9 @@ module cls_measurer
      double precision :: t_win
      double precision :: t_step
      character(line_max), allocatable :: station_names(:)
+     double precision, allocatable :: slat(:)
+     double precision, allocatable :: slon(:)
+     
      character(line_max), allocatable :: pair(:,:)
      logical :: verb
 
@@ -25,10 +31,17 @@ module cls_measurer
      integer :: n_pair_thred
      logical, allocatable :: detected(:,:)
      
+     type(C_PTR)                            :: plan_r2c, plan_c2r
+     real(C_DOUBLE), allocatable            :: r_tmp(:), r2_tmp(:)
+     complex(C_DOUBLE_COMPLEX), allocatable :: c_tmp(:), c2_tmp(:)
+
+     
    contains
      procedure :: check_files => measurer_check_files
      procedure :: scan_cc     => measurer_scan_cc
      procedure :: measure_lag_time => measurer_measure_lag_time
+     procedure :: optimize_cc => measurer_optimize_cc
+     procedure :: optimize_amp => measurer_optimize_amp
   end type measurer
 
   
@@ -40,17 +53,21 @@ contains
 
   !-------------------------------------------------------------------
   
-  type(measurer) function init_measurer(station_names, t_win, t_step, &
-       & n_pair_thred, verb) &
-       & result(self)
+  type(measurer) function init_measurer(station_names, slat, slon, &
+       & t_win, t_step, n_pair_thred, verb) result(self)
     character(line_max), intent(in) :: station_names(:)
+    double precision, intent(in) :: slat(:), slon(:)
     double precision, intent(in) :: t_win, t_step
     integer, intent(in) :: n_pair_thred
     logical, intent(in) :: verb
     integer :: i, j, k
     self%n_sta = size(station_names)
     allocate(self%station_names(self%n_sta))
+    allocate(self%slat(self%n_sta))
+    allocate(self%slon(self%n_sta))
     self%station_names = station_names
+    self%slat = slat
+    self%slon = slon
     self%n_pair = self%n_sta * (self%n_sta - 1) / 2
     self%verb = verb
     self%t_win = t_win
@@ -70,6 +87,15 @@ contains
     allocate(self%cc_thred(self%n_pair))
 
     call self%check_files()
+
+    allocate(self%r_tmp(self%n))
+    allocate(self%r2_tmp(self%n))
+    allocate(self%c_tmp(self%n))
+    allocate(self%c2_tmp(self%n))
+    self%plan_r2c = fftw_plan_dft_r2c_1d(self%n, self%r_tmp, self%c_tmp, &
+         & FFTW_ESTIMATE)
+    self%plan_c2r = fftw_plan_dft_c2r_1d(self%n, self%c2_tmp, self%r2_tmp, &
+         & FFTW_ESTIMATE)
 
     return 
   end function init_measurer
@@ -234,19 +260,21 @@ contains
   subroutine measurer_measure_lag_time(self)
     class(measurer), intent(inout) :: self
     integer :: i1, i2, id, i, io, ierr, j, ista, j1, j2, io2
-    double precision, allocatable :: tmp(:)
-    character(line_max) :: trace_file, env_file
+    double precision, allocatable :: tmp(:, :)
+    double precision :: fac, t(self%n_sta), t_stdv(self%n_sta)
+    double precision :: amp(self%n_sta), amp_stdv(self%n_sta)
+    character(line_max) :: trace_file, env_file, time_file
     
     !print *, self%win_id
     
-    allocate(tmp(self%n))
+    allocate(tmp(self%n, self%n_sta))
     call get_mpi_task_id(self%n_detected, i1, i2)
 
     do i = i1, i2
        id = self%win_id(i)
        j1 = (id - 1) * self%n_step + 1
        j2 = j1 + self%n - 1
-       print *, j1, j2
+       !print *, j1, j2
        write(trace_file,'(A,I5.5,A)') "trace.", id, ".dat"
        open(newunit=io, file=trace_file, form="formatted", status="replace", &
             & iostat=ierr)
@@ -260,20 +288,184 @@ contains
           open(newunit=io2, file=env_file, status="old", form="unformatted", &
                & access="direct", recl=8)
           do j = j1, j2
-             read(io2, rec=2*j)tmp(j-j1+1)
+             read(io2, rec=2*j)tmp(j-j1+1, ista)
           end do
           close(io2)
-          
+          tmp(:,ista) = tmp(:,ista) - sum(tmp(:,ista))/self%n
+          fac = max(-minval(tmp(:,ista)),maxval(tmp(:,ista)))
           do j = 1, self%n
-             write(io,*)(j - 1) * self%dt, tmp(j)
+             write(io,*)(j - 1) * self%dt, tmp(j,ista) / fac + ista
           end do
           write(io,*)
        end do
+       call self%optimize_cc(tmp, t, t_stdv)
+       !call self%optimize_amp(tmp, t, amp, amp_stdv)
+
+       write(io,*)
+       
+       do ista = 1, self%n_sta
+          do j = 1, self%n
+             fac = max(-minval(tmp(:,ista)),maxval(tmp(:,ista)))
+             write(io,*)(j - 1) * self%dt - t(ista), tmp(j,ista) / fac + ista
+          end do
+          write(io,*)
+       end do
+
+       write(io,*)
+       
+       call self%optimize_amp(tmp, t, amp, amp_stdv)
+
+       ! Unnormalized envelopes
+       do ista = 1, self%n_sta
+          do j = 1, self%n
+             write(io,*)(j - 1) * self%dt - t(ista), tmp(j,ista)
+          end do
+          write(io,*)
+       end do
+       write(io,*)
+
+       ! Normalized envelopes
+       do ista = 1, self%n_sta
+          do j = 1, self%n
+             write(io,*)(j - 1) * self%dt - t(ista), &
+                  & tmp(j,ista) / exp(amp(ista))
+          end do
+          write(io,*)
+       end do
+       write(io,*)
        
        close(io)
+
+       write(time_file,'(A,I5.5,A)')"rel_time.", id, ".dat"
+       open(newunit=io, file=time_file, form="formatted", status="replace", &
+            & iostat=ierr)
+       do ista = 1, self%n_sta
+          write(io, *) self%slon(ista), self%slat(ista), t(ista), t_stdv(ista), &
+               & amp(ista), amp_stdv(ista)
+       end do
+       close(io)
+       
     end do
     
     return 
   end subroutine measurer_measure_lag_time
+
+
+  !-------------------------------------------------------------------
+  subroutine measurer_optimize_amp(self, x, t, amp, amp_stdv)
+    class(measurer), intent(inout) :: self
+    double precision, intent(in) :: x(self%n, self%n_sta)
+    double precision, intent(in) :: t(self%n_sta)
+    double precision, intent(out) :: amp(self%n_sta)
+    double precision, intent(out) :: amp_stdv(self%n_sta)
+    double precision :: x2(self%n, self%n_sta), sxy
+    double precision :: rel_log_amp(self%n_sta, self%n_sta), sxx(self%n_sta)
+    integer :: i, j, it
+
+    
+    x2 = 0.d0
+    rel_log_amp = 0.d0
+    do i = 1, self%n_sta
+       it = nint(t(i) / self%dt)
+       do j = 1, self%n
+          if (j+it < 1 .or. j+it > self%n) cycle
+          x2(j, i) = x(j+it, i)
+       end do
+       sxx(i) = sum(x2(:,i)**2)
+    end do
+    
+    do i = 1, self%n_sta - 1
+       do j = i + 1, self%n_sta
+          sxy = sum(x2(:,i) * x2(:,j))
+          if (sxy < 0.d0) then
+             amp = 0.d0
+             amp_stdv = 0.d0
+             return
+          end if
+          rel_log_amp(i,j) = log( sxy / sxx(i))
+          rel_log_amp(j,i) = rel_log_amp(i, j)
+       end do
+    end do
+    
+    amp = 0.d0
+    do i = 1, self%n_sta
+       do j = 1, self%n_sta
+          amp(i) = amp(i) - rel_log_amp(i,j)
+       end do
+       amp(i) = amp(i) / self%n_sta
+    end do
+
+    amp_stdv = 0.d0
+    do i = 1, self%n_sta
+       do j = 1, self%n_sta
+          if (i==j) cycle 
+          amp_stdv(i) = amp_stdv(i) + (amp(j) - amp(i) - rel_log_amp(i,j))**2
+       end do
+    end do
+    amp_stdv = sqrt(amp_stdv /(self%n_sta - 2))
+
+    return 
+  end subroutine measurer_optimize_amp
+
+  !-------------------------------------------------------------------
+  
+  subroutine measurer_optimize_cc(self, x, t, t_stdv)
+    class(measurer), intent(inout) :: self
+    double precision, intent(in) :: x(self%n, self%n_sta)
+    double precision, intent(out) :: t(self%n_sta)
+    double precision, intent(out) :: t_stdv(self%n_sta)
+    double precision :: a(self%n_sta, self%n_sta)
+    double precision :: lag_t(self%n_sta, self%n_sta)
+    double precision :: l
+    complex(kind(0d0)) :: cx(self%n, self%n_sta)
+    integer :: i, j, ilag_t
+
+
+    
+    do i = 1, self%n_sta
+       l = sum(x(1:self%n,i)**2)
+       self%r_tmp(1:self%n) = x(1:self%n, i) / l
+       self%c_tmp = (0.d0, 0.d0)
+       call fftw_execute_dft_r2c(self%plan_r2c, self%r_tmp, self%c_tmp)
+       cx(1:self%n, i) = self%c_tmp(1:self%n)
+    end do
+
+    lag_t = 0.d0
+    do i = 1, self%n_sta - 1
+       do j = i + 1, self%n_sta
+          self%c2_tmp(1:self%n) = conjg(cx(1:self%n,i)) * cx(1:self%n,j)
+          self%r2_tmp = 0.d0
+          call fftw_execute_dft_c2r(self%plan_c2r, self%c2_tmp, self%r2_tmp)
+          ilag_t = maxloc(self%r2_tmp, dim=1)
+          if (ilag_t <= self%n/2) then
+             lag_t(i, j) = (ilag_t - 1) * self%dt
+          else
+             lag_t(i, j) = (ilag_t - self%n - 1) * self%dt
+          end if
+          lag_t(j, i) = -lag_t(i, j)
+          !print *, lag_t(i, j)
+       end do
+    end do
+
+    t = 0.d0
+    do i = 1, self%n_sta
+       do j = 1, self%n_sta
+          t(i) = t(i) - lag_t(i,j)
+       end do
+       t(i) = t(i) / self%n_sta
+    end do
+
+    ! standard deviation
+    t_stdv = 0.d0
+    do i = 1, self%n_sta
+       do j = 1, self%n_sta
+          if (i==j) cycle 
+          t_stdv(i) = t_stdv(i) + (t(j) - t(i) - lag_t(i,j))**2
+       end do
+    end do
+    t_stdv = sqrt(t_stdv /(self%n_sta - 2))
+    
+    return 
+  end subroutine measurer_optimize_cc
   
 end module cls_measurer
