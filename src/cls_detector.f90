@@ -28,7 +28,7 @@ module cls_detector
      integer :: n          ! # of samples in a time window
 
 
-     double precision :: alpha = 0.99d0
+     double precision :: alpha 
      integer :: n_detect = 0
      
      logical :: debug = .false.
@@ -50,9 +50,9 @@ contains
   
   !-------------------------------------------------------------------------
   type(detector) function init_detector(station_names, t_win, t_step, &
-       & dt, n_smp) result(self)
+       & dt, n_smp, alpha) result(self)
     character(line_max), intent(in) :: station_names(:)
-    double precision, intent(in) :: t_win, t_step, dt
+    double precision, intent(in) :: t_win, t_step, dt, alpha
     integer, intent(in) :: n_smp
     integer :: n_stations
     
@@ -66,6 +66,7 @@ contains
     self%t_step = t_step
     self%dt     = dt
     self%n_smp  = n_smp
+    self%alpha  = alpha
 
     if (t_win < 0.d0) then
        error stop "ERROR: t_win must be > 0 (init_detector)"

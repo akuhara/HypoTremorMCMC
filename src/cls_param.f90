@@ -62,6 +62,7 @@ module cls_param
 
 
      ! Detection criteria
+     double precision :: alpha
      integer :: n_pair_thred
 
      ! Verbose
@@ -92,6 +93,7 @@ module cls_param
      procedure :: get_t_win_corr => param_get_t_win_corr
      procedure :: get_t_step_corr => param_get_t_step_corr
      procedure :: get_n_pair_thred => param_get_n_pair_thred
+     procedure :: get_alpha => param_get_alpha
   end type param
   
   interface param
@@ -315,6 +317,8 @@ contains
        read(val,*) self%t_step_corr
     else if (name == "n_pair_thred") then
        read(val,*) self%n_pair_thred
+    else if (name == "alpha") then
+       read(val,*) self%alpha
     else
        if (self%verb) then
           write(0,*)"ERROR: Invalid parameter name"
@@ -542,6 +546,17 @@ contains
 
     return 
   end function param_get_n_pair_thred
+
+  !---------------------------------------------------------------------
+
+  double precision function param_get_alpha(self) result(alpha)
+    class(param), intent(in) :: self
+    
+    alpha = self%alpha
+
+    return 
+  end function param_get_alpha
+
 
   !---------------------------------------------------------------------
   

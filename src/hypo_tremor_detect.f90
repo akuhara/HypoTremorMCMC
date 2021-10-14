@@ -98,10 +98,10 @@ program hypo_tremor_mcmc
        & t_win         = para%get_t_win_corr(),  &
        & t_step        = para%get_t_step_corr(), &
        & dt            = env(1)%get_dt(),        &
-       & n_smp         = env(1)%get_n_smp()      &
+       & n_smp         = env(1)%get_n_smp(),     &
+       & alpha         = para%get_alpha()        &
        & )
   call dtct%calc_correlogram(env=env)
-  !call dtct%eval_correlogram(alpha=0.05d0)
   
   call mpi_finalize(ierr)
   
