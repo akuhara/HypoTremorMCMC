@@ -21,8 +21,8 @@ module cls_measurer
      double precision :: t_win
      double precision :: t_step
      character(line_max), allocatable :: station_names(:)
-     double precision, allocatable :: slat(:)
-     double precision, allocatable :: slon(:)
+     double precision, allocatable :: sta_y(:)
+     double precision, allocatable :: sta_x(:)
      
      character(line_max), allocatable :: pair(:,:)
      logical :: verb
@@ -53,21 +53,21 @@ contains
 
   !-------------------------------------------------------------------
   
-  type(measurer) function init_measurer(station_names, slat, slon, &
+  type(measurer) function init_measurer(station_names, sta_y, sta_x, &
        & t_win, t_step, n_pair_thred, verb) result(self)
     character(line_max), intent(in) :: station_names(:)
-    double precision, intent(in) :: slat(:), slon(:)
+    double precision, intent(in) :: sta_y(:), sta_x(:)
     double precision, intent(in) :: t_win, t_step
     integer, intent(in) :: n_pair_thred
     logical, intent(in) :: verb
     integer :: i, j, k
     self%n_sta = size(station_names)
     allocate(self%station_names(self%n_sta))
-    allocate(self%slat(self%n_sta))
-    allocate(self%slon(self%n_sta))
+    allocate(self%sta_y(self%n_sta))
+    allocate(self%sta_x(self%n_sta))
     self%station_names = station_names
-    self%slat = slat
-    self%slon = slon
+    self%sta_y = sta_y
+    self%sta_x = sta_x
     self%n_pair = self%n_sta * (self%n_sta - 1) / 2
     self%verb = verb
     self%t_win = t_win
@@ -340,7 +340,7 @@ contains
        open(newunit=io, file=time_file, form="formatted", status="replace", &
             & iostat=ierr)
        do ista = 1, self%n_sta
-          write(io, *) self%slon(ista), self%slat(ista), t(ista), t_stdv(ista), &
+          write(io, *) self%sta_x(ista), self%sta_y(ista), t(ista), t_stdv(ista), &
                & amp(ista), amp_stdv(ista)
        end do
        close(io)
@@ -400,10 +400,11 @@ contains
        do j = 1, self%n_sta
           if (i==j) cycle 
           amp_stdv(i) = amp_stdv(i) + (amp(j) - amp(i) - rel_log_amp(i,j))**2
+          
        end do
     end do
-    amp_stdv = sqrt(amp_stdv /(self%n_sta - 2))
-
+    amp_stdv = sqrt(amp_stdv /(self%n_sta - 2)) 
+    
     return 
   end subroutine measurer_optimize_amp
 
