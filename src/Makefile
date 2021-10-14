@@ -39,6 +39,7 @@ COV =
 BINDIR = ../bin
 HYPO_TREMOR_DETECT = $(BINDIR)/hypo_tremor_detect
 HYPO_TREMOR_MEASURE = $(BINDIR)/hypo_tremor_measure
+HYPO_TREMOR_MCMC = $(BINDIR)/hypo_tremor_mcmc
 OBJS_HYPO_TREMOR_DETECT = mod_mpi.o \
 		hypo_tremor_detect.o cls_param.o cls_line_text.o \
 	 	cls_c3_data.o cls_convertor.o cls_detector.o \
@@ -46,9 +47,12 @@ OBJS_HYPO_TREMOR_DETECT = mod_mpi.o \
 OBJS_HYPO_TREMOR_MEASURE = mod_mpi.o \
                 hypo_tremor_measure.o cls_param.o cls_line_text.o \
                 cls_measurer.o
+OBJS_HYPO_TREMOR_MCMC = mod_mpi.o \
+                hypo_tremor_mcmc.o cls_param.o cls_line_text.o \
+                cls_model.o mod_random.o cls_obs_data.o
 
 
-TARGET = $(HYPO_TREMOR_DETECT) $(HYPO_TREMOR_MEASURE)
+TARGET = $(HYPO_TREMOR_DETECT) $(HYPO_TREMOR_MEASURE) $(HYPO_TREMOR_MCMC)
 
 .PHONY: all
 all: $(TARGET)
@@ -56,6 +60,10 @@ all: $(TARGET)
 hypo_tremor_detect.o: mod_mpi.mod cls_param.mod cls_line_text.mod cls_convertor.mod \
                     cls_detector.mod
 hypo_tremor_measure.o: mod_mpi.mod cls_param.mod cls_line_text.mod cls_measurer.mod
+hypo_tremor_mcmc.o: mod_mpi.mod cls_model.mod cls_param.mod cls_line_text.mod \
+                    cls_model.mod cls_obs_data.mod mod_random.mod
+cls_obs_data.o: cls_line_text.mod mod_random.mod
+cls_model.o: mod_random.mod
 cls_param.o: cls_line_text.mod
 cls_convertor.o: cls_c3_data.mod cls_line_text.mod mod_signal_process.mod
 cls_detector.o: cls_c3_data.mod cls_line_text.mod mod_signal_process.mod \
@@ -67,6 +75,10 @@ $(HYPO_TREMOR_DETECT): $(OBJS_HYPO_TREMOR_DETECT)
 	$(FC) $(FFLAGS) $(COV) $(FFTW) $^ -o $@  
 
 $(HYPO_TREMOR_MEASURE): $(OBJS_HYPO_TREMOR_MEASURE)
+	@if [ ! -d $(BINDIR) ]; then mkdir $(BINDIR); fi
+	$(FC) $(FFLAGS) $(COV) $(FFTW) $^ -o $@  
+
+$(HYPO_TREMOR_MCMC): $(OBJS_HYPO_TREMOR_MCMC)
 	@if [ ! -d $(BINDIR) ]; then mkdir $(BINDIR); fi
 	$(FC) $(FFLAGS) $(COV) $(FFTW) $^ -o $@  
 

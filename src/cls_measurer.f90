@@ -245,9 +245,9 @@ contains
     if (rank == 0) then
        detected_win_file = "detected_win.dat"
        open(newunit=io, file=detected_win_file, status="replace", iostat=ierr,&
-       & form="unformatted", access="stream")
+       & form="formatted")
        do i = 1, self%n_detected
-          write(io)(self%win_id(i)-1)*self%t_step + 0.5d0 * self%t_win, 1.d0
+          write(io,*)self%win_id(i), (self%win_id(i)-1)*self%t_step + 0.5d0 * self%t_win
        end do
        close(io)
     end if
