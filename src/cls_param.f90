@@ -59,11 +59,23 @@ module cls_param
      ! Time window for correlation detection
      double precision :: t_win_corr
      double precision :: t_step_corr
-
+     
 
      ! Detection criteria
      double precision :: alpha
      integer :: n_pair_thred
+
+     ! MCMC
+     integer :: n_iter, n_burn, n_interval
+     integer :: n_chains
+     integer :: n_cool
+     double precision :: temp_high
+     double precision :: prior_width_xy, prior_width_z
+     double precision :: prior_xy, prior_z
+     double precision :: prior_width_vs, prior_vs
+     double precision :: prior_width_t_corr, prior_t_corr
+     double precision :: step_size_xy, step_size_z
+     double precision :: step_size_vs, step_size_t_corr
 
      ! Verbose
      logical :: verb = .false.
@@ -82,6 +94,7 @@ module cls_param
      procedure :: get_station => param_get_station
      procedure :: get_sta_y => param_get_sta_y
      procedure :: get_sta_x => param_get_sta_x
+     procedure :: get_sta_z => param_get_sta_z
      procedure :: get_n_data_id => param_get_n_data_id
      procedure :: get_data_id => param_get_data_id
      procedure :: get_comps => param_get_comps
@@ -94,6 +107,23 @@ module cls_param
      procedure :: get_t_step_corr => param_get_t_step_corr
      procedure :: get_n_pair_thred => param_get_n_pair_thred
      procedure :: get_alpha => param_get_alpha
+     procedure :: get_n_iter => param_get_n_iter
+     procedure :: get_n_burn => param_get_n_burn
+     procedure :: get_n_interval => param_get_n_interval
+     procedure :: get_n_chains => param_get_n_chains
+     procedure :: get_n_cool => param_get_n_cool
+     procedure :: get_temp_high => param_get_temp_high
+     procedure :: get_prior_width_xy => param_get_prior_width_xy
+     procedure :: get_prior_width_z => param_get_prior_width_z
+     procedure :: get_prior_z => param_get_prior_z
+     procedure :: get_prior_vs => param_get_prior_vs
+     procedure :: get_prior_width_vs => param_get_prior_width_vs
+     procedure :: get_prior_t_corr => param_get_prior_t_corr
+     procedure :: get_prior_width_t_corr => param_get_prior_width_t_corr
+     procedure :: get_step_size_z => param_get_step_size_z
+     procedure :: get_step_size_xy => param_get_step_size_xy
+     procedure :: get_step_size_vs => param_get_step_size_vs
+     procedure :: get_step_size_t_corr => param_get_step_size_t_corr
   end type param
   
   interface param
@@ -211,10 +241,10 @@ contains
     ! Read lines
     rewind(io)
     do i = 1, n_sta
-       read(io, *) self%stations(i), self%sta_y(i), self%sta_x(i), self%sta_z(i)
+       read(io, *) self%stations(i), self%sta_x(i), self%sta_y(i), self%sta_z(i)
        if (self%verb) then
           write(*,'(1x,a,3F9.3)')trim(self%stations(i)), &
-               & self%sta_y(i), self%sta_x(i), self%sta_z(i)
+               & self%sta_x(i), self%sta_y(i), self%sta_z(i)
        end if
     end do
     close(io)
@@ -319,6 +349,40 @@ contains
        read(val,*) self%n_pair_thred
     else if (name == "alpha") then
        read(val,*) self%alpha
+    else if (name == "n_iter") then
+       read(val,*) self%n_iter
+    else if (name == "n_burn") then
+       read(val,*) self%n_burn
+    else if (name == "n_interval") then
+       read(val,*) self%n_interval
+    else if (name == "n_chains") then
+       read(val,*) self%n_chains
+    else if (name == "n_cool") then
+       read(val,*) self%n_cool
+    else if (name == "temp_high") then
+       read(val,*) self%temp_high
+    else if (name == "prior_width_xy") then
+       read(val,*) self%prior_width_xy
+    else if (name == "prior_width_z") then
+       read(val,*) self%prior_width_z
+    else if (name == "prior_z") then
+       read(val,*) self%prior_z
+    else if (name == "prior_vs") then
+       read(val,*) self%prior_vs
+    else if (name == "prior_width_vs") then
+       read(val,*) self%prior_width_vs
+    else if (name == "prior_t_corr") then
+       read(val,*) self%prior_t_corr
+    else if (name == "prior_width_t_corr") then
+       read(val,*) self%prior_width_t_corr
+    else if (name == "step_size_xy") then
+       read(val,*) self%step_size_xy
+    else if (name == "step_size_z") then
+       read(val,*) self%step_size_z
+    else if (name == "step_size_vs") then
+       read(val,*) self%step_size_vs
+    else if (name == "step_size_t_corr") then
+       read(val,*) self%step_size_t_corr
     else
        if (self%verb) then
           write(0,*)"ERROR: Invalid parameter name"
@@ -396,6 +460,17 @@ contains
     
     return 
   end function param_get_sta_x
+
+  !---------------------------------------------------------------------
+
+  function param_get_sta_z(self) result(sta_z)
+    class(param), intent(in) :: self
+    double precision :: sta_z(self%n_stations)
+
+    sta_z = self%sta_z
+    
+    return 
+  end function param_get_sta_z
 
   !---------------------------------------------------------------------
   
@@ -557,8 +632,188 @@ contains
     return 
   end function param_get_alpha
 
+  !---------------------------------------------------------------------
+
+  integer function param_get_n_iter(self) result(n_iter)
+    class(param), intent(in) :: self
+    
+    n_iter = self%n_iter
+
+    return 
+  end function param_get_n_iter
+
+  !---------------------------------------------------------------------
+
+  integer function param_get_n_interval(self) result(n_interval)
+    class(param), intent(in) :: self
+    
+    n_interval = self%n_interval
+
+    return 
+  end function param_get_n_interval
+
+  !---------------------------------------------------------------------
+
+  integer function param_get_n_burn(self) result(n_burn)
+    class(param), intent(in) :: self
+    
+    n_burn = self%n_burn
+
+    return 
+  end function param_get_n_burn
+
+  !---------------------------------------------------------------------
+
+  integer function param_get_n_chains(self) result(n_chains)
+    class(param), intent(in) :: self
+    
+    n_chains = self%n_chains
+
+    return 
+  end function param_get_n_chains
 
   !---------------------------------------------------------------------
   
+  integer function param_get_n_cool(self) result(n_cool)
+    class(param), intent(in) :: self
+    
+    n_cool = self%n_cool
+
+    return 
+  end function param_get_n_cool
+
+  !---------------------------------------------------------------------
+
+  double precision function param_get_temp_high(self) result(temp_high)
+    class(param), intent(in) :: self
+    
+    temp_high = self%temp_high
+
+    return 
+  end function param_get_temp_high
+  
+  !---------------------------------------------------------------------
+
+  double precision function param_get_prior_width_xy(self) &
+       & result(prior_width_xy)
+    class(param), intent(in) :: self
+    
+    prior_width_xy = self%prior_width_xy
+
+    return 
+  end function param_get_prior_width_xy
+  
+  !---------------------------------------------------------------------
+  
+  double precision function param_get_prior_width_z(self) &
+       & result(prior_width_z)
+    class(param), intent(in) :: self
+    
+    prior_width_z = self%prior_width_z
+
+    return 
+  end function param_get_prior_width_z
+  
+  !---------------------------------------------------------------------
+  
+  double precision function param_get_prior_z(self) &
+       & result(prior_z)
+    class(param), intent(in) :: self
+    
+    prior_z = self%prior_z
+
+    return 
+  end function param_get_prior_z
+
+
+  !---------------------------------------------------------------------
+
+  double precision function param_get_prior_width_vs(self) &
+       & result(prior_width_vs)
+    class(param), intent(in) :: self
+    
+    prior_width_vs = self%prior_width_vs
+
+    return 
+  end function param_get_prior_width_vs
+  
+  !---------------------------------------------------------------------
+  
+  double precision function param_get_prior_vs(self) &
+       & result(prior_vs)
+    class(param), intent(in) :: self
+    
+    prior_vs = self%prior_vs
+
+    return 
+  end function param_get_prior_vs
+
+  !---------------------------------------------------------------------
+
+  double precision function param_get_prior_width_t_corr(self) &
+       & result(prior_width_t_corr)
+    class(param), intent(in) :: self
+    
+    prior_width_t_corr = self%prior_width_t_corr
+
+    return 
+  end function param_get_prior_width_t_corr
+  
+  !---------------------------------------------------------------------
+  
+  double precision function param_get_prior_t_corr(self) &
+       & result(prior_t_corr)
+    class(param), intent(in) :: self
+    
+    prior_t_corr = self%prior_t_corr
+
+    return 
+  end function param_get_prior_t_corr
+
+  !---------------------------------------------------------------------
+  
+  double precision function param_get_step_size_xy(self) &
+       & result(step_size_xy)
+    class(param), intent(in) :: self
+    
+    step_size_xy = self%step_size_xy
+
+    return 
+  end function param_get_step_size_xy
+  
+  !---------------------------------------------------------------------
+
+  double precision function param_get_step_size_z(self) &
+       & result(step_size_z)
+    class(param), intent(in) :: self
+    
+    step_size_z = self%step_size_z
+
+    return 
+  end function param_get_step_size_z
+  
+  !---------------------------------------------------------------------
+
+    double precision function param_get_step_size_t_corr(self) &
+       & result(step_size_t_corr)
+    class(param), intent(in) :: self
+    
+    step_size_t_corr = self%step_size_t_corr
+
+    return 
+  end function param_get_step_size_t_corr
+  
+  !---------------------------------------------------------------------
+  
+  double precision function param_get_step_size_vs(self) &
+       & result(step_size_vs)
+    class(param), intent(in) :: self
+    
+    step_size_vs = self%step_size_vs
+
+    return 
+  end function param_get_step_size_vs
+  
+  !---------------------------------------------------------------------
 
 end module cls_param

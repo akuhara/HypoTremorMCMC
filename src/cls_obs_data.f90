@@ -13,11 +13,14 @@ module cls_obs_data
      double precision, allocatable :: t_stdv(:,:)
      double precision, allocatable :: dt_obs(:,:,:)
      double precision, allocatable :: dt_stdv(:,:,:)
+     double precision, allocatable :: sta_x(:), sta_y(:)
      
      
    contains
      procedure :: read_obs_files => obs_data_read_obs_files
-     
+     procedure :: make_initial_guess => obs_data_make_initial_guess
+     procedure :: get_dt_obs => obs_data_get_dt_obs
+     procedure :: get_dt_stdv => obs_data_get_dt_stdv
   end type obs_data
   
   interface obs_data
@@ -28,8 +31,10 @@ contains
   
   !-------------------------------------------------------------------------
   
-  type(obs_data) function init_obs_data(win_id, n_sta, verb) result(self)
+  type(obs_data) function init_obs_data(win_id, n_sta, &
+       & sta_x, sta_y, verb) result(self)
     integer, intent(in) :: win_id(:), n_sta
+    double precision, intent(in) :: sta_x(:), sta_y(:)
     logical, intent(in) :: verb
 
     self%n_events = size(win_id)
@@ -37,11 +42,18 @@ contains
     self%win_id = win_id
     self%verb = verb
 
+
     self%n_sta = n_sta
     allocate(self%t_obs(self%n_sta, self%n_events))
     allocate(self%t_stdv(self%n_sta, self%n_events))
     allocate(self%dt_obs(self%n_sta, self%n_sta, self%n_events))
     allocate(self%dt_stdv(self%n_sta, self%n_sta, self%n_events))
+
+    allocate(self%sta_x(self%n_sta))
+    allocate(self%sta_y(self%n_sta))
+    self%sta_x = sta_x
+    self%sta_y = sta_y
+    
     
     call self%read_obs_files()
     
@@ -94,5 +106,49 @@ contains
   end subroutine obs_data_read_obs_files
   
   !-------------------------------------------------------------------------
+  
+  subroutine obs_data_make_initial_guess(self, x_mu, y_mu)
+    class(obs_data), intent(inout) :: self
+    double precision, intent(out) :: x_mu(self%n_events), y_mu(self%n_events)
+    integer :: i, ista
+    
+    
+    do i = 1, self%n_events
+       ista = minloc(self%t_obs(:,i), dim=1)
+       x_mu(i) = self%sta_x(ista)
+       y_mu(i) = self%sta_y(ista)
+    end do
+    
+    
+    return 
+  end subroutine obs_data_make_initial_guess
 
+  !-------------------------------------------------------------------------
+  
+  function obs_data_get_dt_obs(self, i, j, k) result(dt_obs)
+    class(obs_data), intent(in) :: self
+    integer, intent(in) :: i, j, k
+    double precision :: dt_obs
+    
+    dt_obs  = self%dt_obs(i, j, k)
+    
+    return 
+  end function obs_data_get_dt_obs
+
+  !-------------------------------------------------------------------------
+  
+  function obs_data_get_dt_stdv(self, i, j, k) result(dt_stdv)
+    class(obs_data), intent(in) :: self
+    integer, intent(in) :: i, j, k
+    double precision :: dt_stdv
+    
+    dt_stdv  = self%dt_stdv(i, j, k)
+    
+    return 
+  end function obs_data_get_dt_stdv
+    
+  !-------------------------------------------------------------------------
+    
+    
+  
 end module cls_obs_data

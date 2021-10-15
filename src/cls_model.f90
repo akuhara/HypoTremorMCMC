@@ -18,6 +18,7 @@ module cls_model
      procedure :: set_perturb => model_set_perturb
      procedure :: get_nx => model_get_nx
      procedure :: get_x => model_get_x
+     procedure :: get_all_x => model_get_all_x
      procedure :: set_x => model_set_x
      procedure :: generate_model => model_generate_model
      procedure :: perturb => model_perturb
@@ -63,7 +64,6 @@ contains
     class(model), intent(inout) :: self
     integer, intent(in) :: i
     double precision, intent(in) :: mu, sigma
-    integer :: ierr
     
     self%mu(i) = mu
     self%sigma(i) = sigma
@@ -106,6 +106,17 @@ contains
 
   !---------------------------------------------------------------------
 
+  function model_get_all_x(self) result(all_x)
+    class(model), intent(in) :: self
+    double precision :: all_x(self%nx)
+    
+    all_x = self%x
+    
+    return 
+  end function model_get_all_x
+
+  !---------------------------------------------------------------------
+
   subroutine model_set_x(self, iparam, x)
     class(model), intent(inout) :: self
     integer, intent(in) :: iparam
@@ -131,15 +142,20 @@ contains
   
   !---------------------------------------------------------------------
 
-  subroutine model_perturb(self)
+  subroutine model_perturb(self, i, log_prior_ratio)
     class(model), intent(inout) :: self
-    integer :: iparam
+    integer, intent(in) :: i
+    double precision, intent(out) :: log_prior_ratio
     double precision :: x_new, x_old
 
-    iparam = 1 + int(rand_u() * self%nx)
-    x_old = self%x(iparam)
-    x_new = x_old + rand_g() * self%step_size(iparam)
-    self%x(iparam) = x_new
+
+    x_old = self%x(i)
+    x_new = x_old + rand_g() * self%step_size(i)
+    self%x(i) = x_new
+
+    log_prior_ratio = &
+         & -((x_new- self%mu(i))**2 - (x_old-self%mu(i))**2) / &
+         & (2.d0 * self%sigma(i) * self%sigma(i))
 
     return 
   end subroutine model_perturb
