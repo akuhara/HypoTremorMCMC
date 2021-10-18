@@ -115,8 +115,10 @@ program main
         call t_corr%set_prior(i=i, mu=para%get_prior_t_corr(), &
              & sigma=para%get_prior_width_t_corr()) 
         call t_corr%set_perturb(i=i, step_size=para%get_step_size_t_corr())
+        call t_corr%set_x(i, 0.d0)
      end do
-     call t_corr%generate_model()
+     !call t_corr%generate_model()
+
      if (verb) call t_corr%display()
      
      ! ** Hypocenters

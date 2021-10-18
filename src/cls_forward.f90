@@ -91,12 +91,14 @@ contains
     
     do i = 1, self%n_events
        do j = 1, self%n_sta - 1
-          do k = j, self%n_sta
+          do k = j + 1, self%n_sta
              if (self%obs%get_dt_stdv(k,j,i) == 0.d0) cycle
+             if (self%obs%get_dt_stdv(k,j,i) > 4.d0) cycle
              log_likelihood = log_likelihood - &
                   & (self%obs%get_dt_obs(k, j, i) - dt_syn(k, j, i))**2 / &
                   & (2.d0 * self%obs%get_dt_stdv(k, j, i)**2) - log_2pi_half &
-                  & -log(self%obs%get_dt_stdv(k,j,i))
+             & -log(self%obs%get_dt_stdv(k,j,i))
+             
           end do
        end do
     end do
@@ -114,7 +116,7 @@ contains
 
     do i = 1, self%n_events
        do j = 1, self%n_sta - 1
-          do k = j, self%n_sta
+          do k = j + 1, self%n_sta
              dt_syn(k, j, i) = t_syn(j,i) - t_syn(k,i)
           end do
        end do

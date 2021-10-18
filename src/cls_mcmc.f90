@@ -62,7 +62,7 @@ contains
     self%n_accept  = 0
     self%n_iter    = n_iter
     self%i_iter    = 0
-    self%log_likelihood = -9.d+10
+    self%log_likelihood = -9.d+300
 
     return 
   end function init_mcmc
@@ -84,9 +84,10 @@ contains
     
     a_select = rand_u()
     dp = 1.d0 / (3 * self%n_events + self%n_sta + 1)
-    p1 = dp
-    p2 = p1 + dp * self%n_sta
-
+    !p1 = dp
+    !p2 = p1 + dp * self%n_sta
+    p1 = -999.d0
+    p2 = -999.d0
 
     if (a_select < p1) then
        ! Perturb Vs
