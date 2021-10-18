@@ -53,21 +53,21 @@ contains
 
   !-------------------------------------------------------------------
   
-  type(measurer) function init_measurer(station_names, sta_y, sta_x, &
+  type(measurer) function init_measurer(station_names, sta_x, sta_y, &
        & t_win, t_step, n_pair_thred, verb) result(self)
     character(line_max), intent(in) :: station_names(:)
-    double precision, intent(in) :: sta_y(:), sta_x(:)
+    double precision, intent(in) :: sta_x(:), sta_y(:)
     double precision, intent(in) :: t_win, t_step
     integer, intent(in) :: n_pair_thred
     logical, intent(in) :: verb
     integer :: i, j, k
     self%n_sta = size(station_names)
     allocate(self%station_names(self%n_sta))
-    allocate(self%sta_y(self%n_sta))
     allocate(self%sta_x(self%n_sta))
+    allocate(self%sta_y(self%n_sta))
     self%station_names = station_names
-    self%sta_y = sta_y
     self%sta_x = sta_x
+    self%sta_y = sta_y
     self%n_pair = self%n_sta * (self%n_sta - 1) / 2
     self%verb = verb
     self%t_win = t_win

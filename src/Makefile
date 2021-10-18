@@ -9,14 +9,14 @@
 #	 -fconvert=big-endian
 
 # Example 2. GNU fortran for fast computation
-#FC     = mpif90
-#FFLAGS = -ffast-math -march=native -mtune=native -O3 -fno-range-check \
-#         -fconvert=big-endian
+FC     = mpif90
+FFLAGS = -ffast-math -march=native -mtune=native -O3 -fno-range-check \
+         -fconvert=big-endian
 
 # Example 3. Intel compiler for fast computation
-FC      = mpiifort
-FFLAGS  = -assume byterecl -lmpi -xAVX -O3 -convert big_endian
-MKLROOT = /home/app/intel/compilers_and_libraries_2019.5.281/linux/mkl
+#FC      = mpiifort
+#FFLAGS  = -assume byterecl -lmpi -xAVX -O3 -convert big_endian
+#MKLROOT = /home/app/intel/compilers_and_libraries_2019.5.281/linux/mkl
 
 
 #-----------------------------------------------------------------------

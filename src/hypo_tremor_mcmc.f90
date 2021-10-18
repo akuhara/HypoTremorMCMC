@@ -198,6 +198,7 @@ program main
              & .and. mod(i, para%get_n_interval()) == 1) then
            write(io_vs)i,  mc%write_out_vs()
            write(io_hypo)i, mc%write_out_hypo()
+           write(io_t_corr)i, mc%write_out_t_corr()
         end if
      end do
      ! Swap Temp.
