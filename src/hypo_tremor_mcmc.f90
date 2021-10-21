@@ -108,10 +108,10 @@ program main
   do j = 1, para%get_n_chains()
      ! MCMC model parameters
      ! ** Station correction
+     t_corr = model(&
+          & nx   = para%get_n_stations(), &
+          & verb = verb)
      if (para%get_solve_t_corr()) then
-        t_corr = model(&
-             & nx   = para%get_n_stations(), &
-             & verb = verb)
         do i = 1, para%get_n_stations()
            call t_corr%set_prior(i=i, mu=para%get_prior_t_corr(), &
                 & sigma=para%get_prior_width_t_corr()) 
@@ -120,7 +120,7 @@ program main
         call t_corr%generate_model()
      else
         do i = 1, para%get_n_stations()
-           call t_corr%set_x(1, para%get_prior_t_corr())
+           call t_corr%set_x(i, para%get_prior_t_corr())
         end do
      end if
      if (verb) call t_corr%display()
