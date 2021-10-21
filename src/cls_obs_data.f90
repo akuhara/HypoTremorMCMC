@@ -125,24 +125,22 @@ contains
 
   !-------------------------------------------------------------------------
   
-  function obs_data_get_dt_obs(self, i, j, k) result(dt_obs)
+  function obs_data_get_dt_obs(self) result(dt_obs)
     class(obs_data), intent(in) :: self
-    integer, intent(in) :: i, j, k
-    double precision :: dt_obs
+    double precision :: dt_obs(self%n_sta, self%n_sta, self%n_events)
     
-    dt_obs  = self%dt_obs(i, j, k)
+    dt_obs  = self%dt_obs
     
     return 
   end function obs_data_get_dt_obs
 
   !-------------------------------------------------------------------------
   
-  function obs_data_get_dt_stdv(self, i, j, k) result(dt_stdv)
+  function obs_data_get_dt_stdv(self) result(dt_stdv)
     class(obs_data), intent(in) :: self
-    integer, intent(in) :: i, j, k
-    double precision :: dt_stdv
+    double precision :: dt_stdv(self%n_sta, self%n_sta, self%n_events)
     
-    dt_stdv  = self%dt_stdv(i, j, k)
+    dt_stdv  = self%dt_stdv
     
     return 
   end function obs_data_get_dt_stdv

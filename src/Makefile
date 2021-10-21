@@ -4,7 +4,7 @@
 
 # Example 1. GNU fortran for debug
 #FC     = mpif90
-#FFLAGS = -pg -Wall -pedantic -fbounds-check -O0 \
+#FFLAGS = -pg -Wall -pedantic -fbounds-check -O0 -std=f2008 \
 #         -Wuninitialized -ffpe-trap=invalid,zero,overflow -fbacktrace \
 #	 -fconvert=big-endian
 

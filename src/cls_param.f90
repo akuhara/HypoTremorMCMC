@@ -76,12 +76,15 @@ module cls_param
      double precision :: prior_width_t_corr, prior_t_corr
      double precision :: step_size_xy, step_size_z
      double precision :: step_size_vs, step_size_t_corr
+     
+     ! Inversion setting
+     logical :: solve_vs
+     logical :: solve_t_corr
+
 
      ! Verbose
      logical :: verb = .false.
-
      
-
    contains
      procedure :: read_param_file => param_read_param_file
      procedure :: read_station_file => param_read_station_file
@@ -124,6 +127,8 @@ module cls_param
      procedure :: get_step_size_xy => param_get_step_size_xy
      procedure :: get_step_size_vs => param_get_step_size_vs
      procedure :: get_step_size_t_corr => param_get_step_size_t_corr
+     procedure :: get_solve_vs => param_get_solve_vs
+     procedure :: get_solve_t_corr => param_get_solve_t_corr
   end type param
   
   interface param
@@ -383,6 +388,10 @@ contains
        read(val,*) self%step_size_vs
     else if (name == "step_size_t_corr") then
        read(val,*) self%step_size_t_corr
+    else if (name == "solve_vs") then
+       read(val,*) self%solve_vs
+    else if (name == "solve_t_corr") then
+       read(val,*) self%solve_t_corr
     else
        if (self%verb) then
           write(0,*)"ERROR: Invalid parameter name"
@@ -813,6 +822,28 @@ contains
 
     return 
   end function param_get_step_size_vs
+  
+  !---------------------------------------------------------------------
+
+  logical function param_get_solve_vs(self) &
+       & result(solve_vs)
+    class(param), intent(in) :: self
+    
+    solve_vs = self%solve_vs
+
+    return 
+  end function param_get_solve_vs
+  
+  !---------------------------------------------------------------------
+
+  logical function param_get_solve_t_corr(self) &
+       & result(solve_t_corr)
+    class(param), intent(in) :: self
+    
+    solve_t_corr = self%solve_t_corr
+
+    return 
+  end function param_get_solve_t_corr
   
   !---------------------------------------------------------------------
 

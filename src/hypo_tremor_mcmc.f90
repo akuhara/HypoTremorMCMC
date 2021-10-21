@@ -60,7 +60,7 @@ program main
 
 
   !
-  call init_random(1111, 222222, 313131, 55555555, rank)
+  call init_random(711111, 12222, 93131, 7555555, rank)
   
   ! Events
   win_id = [ integer :: ]
@@ -108,17 +108,21 @@ program main
   do j = 1, para%get_n_chains()
      ! MCMC model parameters
      ! ** Station correction
-     t_corr = model(&
-          & nx   = para%get_n_stations(), &
-          & verb = verb)
-     do i = 1, para%get_n_stations()
-        call t_corr%set_prior(i=i, mu=para%get_prior_t_corr(), &
-             & sigma=para%get_prior_width_t_corr()) 
-        call t_corr%set_perturb(i=i, step_size=para%get_step_size_t_corr())
-        call t_corr%set_x(i, 0.d0)
-     end do
-     !call t_corr%generate_model()
-
+     if (para%get_solve_t_corr()) then
+        t_corr = model(&
+             & nx   = para%get_n_stations(), &
+             & verb = verb)
+        do i = 1, para%get_n_stations()
+           call t_corr%set_prior(i=i, mu=para%get_prior_t_corr(), &
+                & sigma=para%get_prior_width_t_corr()) 
+           call t_corr%set_perturb(i=i, step_size=para%get_step_size_t_corr())
+        end do
+        call t_corr%generate_model()
+     else
+        do i = 1, para%get_n_stations()
+           call t_corr%set_x(1, para%get_prior_t_corr())
+        end do
+     end if
      if (verb) call t_corr%display()
      
      ! ** Hypocenters
@@ -145,10 +149,12 @@ program main
      if (verb) call vs%display()
      
      mc = mcmc(&
-          & hypo   = hypo,   &
-          & t_corr = t_corr, &
-          & vs     = vs,     &
-          & n_iter = para%get_n_iter() &
+          & hypo         = hypo,   &
+          & t_corr       = t_corr, &
+          & vs           = vs,     &
+          & n_iter       = para%get_n_iter(), &
+          & solve_t_corr = para%get_solve_t_corr(), &
+          & solve_vs     = para%get_solve_vs() &
           & )
      
      ! Set temperatures

@@ -20,6 +20,11 @@ module cls_mcmc
      double precision, allocatable :: temp_saved(:)
      double precision :: temp = 1.d0
      logical :: is_accepted
+
+     double precision :: p_hypo
+     double precision :: p_vs
+     double precision :: p_t_corr
+
    contains
      procedure :: propose_model => mcmc_propose_model
      procedure :: judge_model   => mcmc_judge_model
@@ -46,16 +51,19 @@ contains
 
   !---------------------------------------------------------------------
   
-  type(mcmc) function init_mcmc(hypo, t_corr, vs, n_iter) result(self)
+  type(mcmc) function init_mcmc(hypo, t_corr, vs, n_iter, &
+       & solve_t_corr, solve_vs) result(self)
     type(model), intent(in) :: hypo, t_corr, vs
     integer, intent(in) :: n_iter
+    logical, intent(in) :: solve_t_corr, solve_vs
+    integer :: n_hypo, n_t_corr, n_vs
 
     self%hypo     = hypo
     self%n_events = hypo%get_nx() / 3
     self%t_corr   = t_corr
     self%n_sta    = t_corr%get_nx()
     self%vs       = vs
-
+    
     allocate(self%n_propose(self%n_proposal_type))
     allocate(self%n_accept(self%n_proposal_type))
     self%n_propose = 0
@@ -63,6 +71,24 @@ contains
     self%n_iter    = n_iter
     self%i_iter    = 0
     self%log_likelihood = -9.d+300
+
+    ! set proposal probability
+    n_hypo = 3 * self%n_events
+    if (solve_vs) then
+       n_vs = 1
+    else
+       n_vs = 0
+    end if
+    if (solve_t_corr) then
+       n_t_corr = self%n_sta
+    else
+       n_t_corr = 0
+    end if
+    self%p_hypo     = dble(n_hypo)   / dble(n_hypo + n_t_corr + n_vs)
+    self%p_vs       = dble(n_vs)     / dble(n_hypo + n_t_corr + n_vs)
+    self%p_t_corr   = dble(n_t_corr) / dble(n_hypo + n_t_corr + n_vs)
+
+
 
     return 
   end function init_mcmc
@@ -84,16 +110,16 @@ contains
     
     a_select = rand_u()
     dp = 1.d0 / (3 * self%n_events + self%n_sta + 1)
-    !p1 = dp
-    !p2 = p1 + dp * self%n_sta
+    p1 = dp
+    p2 = p1 + dp * self%n_sta
     p1 = -999.d0
     p2 = -999.d0
 
-    if (a_select < p1) then
+    if (a_select < self%p_vs) then
        ! Perturb Vs
        call vs_proposed%perturb(1, log_prior_ratio)
        self%i_proposal_type = 1
-    else if (a_select < p2) then
+    else if (a_select < self%p_vs + self%p_t_corr) then
        ! Perturb t_corr
        id   = int(rand_u() * self%n_sta) + 1
        call t_corr_proposed%perturb(id, log_prior_ratio)

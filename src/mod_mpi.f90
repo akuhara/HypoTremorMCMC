@@ -1,6 +1,6 @@
 module mod_mpi
+  use mpi
   implicit none
-  include 'mpif.h'
 
   public get_mpi_task_id
 
