@@ -84,10 +84,14 @@ contains
     else
        n_t_corr = 0
     end if
-    self%p_hypo     = dble(n_hypo)   / dble(n_hypo + n_t_corr + n_vs)
-    self%p_vs       = dble(n_vs)     / dble(n_hypo + n_t_corr + n_vs)
-    self%p_t_corr   = dble(n_t_corr) / dble(n_hypo + n_t_corr + n_vs)
-
+    !self%p_hypo     = dble(n_hypo)   / dble(n_hypo + n_t_corr + n_vs)
+    !self%p_vs       = dble(n_vs)     / dble(n_hypo + n_t_corr + n_vs)
+    !self%p_t_corr   = dble(n_t_corr) / dble(n_hypo + n_t_corr + n_vs)
+    self%p_hypo   = 0.95d0
+    self%p_vs     = 0.025d0
+    self%p_t_corr = 0.025d0
+    
+    
 
 
     return 
