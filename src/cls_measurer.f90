@@ -383,7 +383,7 @@ contains
              return
           end if
           rel_log_amp(i,j) = log( sxy / sxx(i))
-          rel_log_amp(j,i) = rel_log_amp(i, j)
+          rel_log_amp(j,i) = - rel_log_amp(i, j)
        end do
     end do
     
