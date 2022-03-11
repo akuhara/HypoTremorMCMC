@@ -8,11 +8,8 @@ module cls_forward
      integer :: n_events
      integer :: n_sta
      double precision, allocatable :: sta_x(:), sta_y(:), sta_z(:)
-     double precision, allocatable :: dt_stdv(:,:,:), dt_obs(:,:,:)
-     double precision, allocatable :: log_dt_stdv(:,:,:)
-     logical, allocatable :: data_used(:,:,:)
-
-     
+     double precision, allocatable :: t_stdv(:,:), t_obs(:,:)
+     double precision, allocatable :: log_t_stdv(:,:)
 
    contains
      procedure :: calc_log_likelihood => forward_calc_log_likelihood
@@ -46,28 +43,22 @@ contains
     self%n_events = n_events
     !self%obs = obs
 
-    allocate(self%dt_obs(self%n_sta, self%n_sta, self%n_events))
-    allocate(self%dt_stdv(self%n_sta, self%n_sta, self%n_events))
-    allocate(self%log_dt_stdv(self%n_sta, self%n_sta, self%n_events))
-    allocate(self%data_used(self%n_sta, self%n_sta, self%n_events))
+    allocate(self%t_obs(self%n_sta, self%n_events))
+    allocate(self%t_stdv(self%n_sta, self%n_events))
+    allocate(self%log_t_stdv(self%n_sta, self%n_events))
     
-    self%dt_obs = obs%get_dt_obs()
-    self%dt_stdv = obs%get_dt_stdv()
+    self%t_obs = obs%get_t_obs()
+    self%t_stdv = obs%get_t_stdv()
 
     !self%data_used = .false.
     do concurrent (i=1:self%n_events)
-       do concurrent (j=1:self%n_sta-1)
-          do concurrent (k=j+1:self%n_sta)
-             if (self%dt_stdv(k,j,i) > 1.d-16) then
-                self%log_dt_stdv(k, j, i) = log(self%dt_stdv(k, j, i))
-                !self%data_used(k, j, i) = .true.
-             else
-                self%log_dt_stdv(k, j, i) =1.d0
-                self%dt_stdv(k, j, i) = 1.d0
-                !self%data_used(k, j, i) = .false.
-             end if
-    
-          end do
+       do concurrent (j=1:self%n_sta)
+          if (self%t_stdv(j,i) > 1.d-16) then
+             self%log_t_stdv(j, i) = log(self%t_stdv(j, i))
+          else
+             self%log_t_stdv(j, i) =1.d0
+             self%t_stdv(j, i) = 1.d0
+          end if
        end do
     end do
 
@@ -100,6 +91,13 @@ contains
        end do
     end do
     
+    ! Demean
+    do concurrent (i = 1:self%n_events)
+       t_syn(1:self%n_sta,i) = t_syn(1:self%n_sta,i) &
+            & - sum(t_syn(1:self%n_sta,i)) / self%n_sta
+    end do
+    
+    
     return 
   end subroutine forward_calc_travel_time
     
@@ -110,11 +108,11 @@ contains
     type(model), intent(in) :: hypo, t_corr, vs
     double precision, intent(out) :: log_likelihood
     double precision :: t_syn(self%n_sta, self%n_events)
-    double precision :: dt_syn(self%n_sta, self%n_sta, self%n_events)
+    !double precision :: dt_syn(self%n_sta, self%n_sta, self%n_events)
     double precision :: tmp(self%n_sta, self%n_sta, self%n_events)
     integer :: i, j,  k
     call self%calc_travel_time(hypo, t_corr, vs, t_syn)
-    call self%calc_dt(t_syn, dt_syn)
+    !call self%calc_dt(t_syn, dt_syn)
 
     log_likelihood = 0.d0
     !return 
@@ -126,19 +124,32 @@ contains
     !log_likelihood = sum(tmp, mask=self%data_used)
 
     
+    !do i = 1, self%n_events
+    !   do j = 1, self%n_sta - 1
+    !      do k = j + 1, self%n_sta
+    !         if (self%dt_stdv(k,j,i) == 0.d0) cycle
+    !         if (self%dt_stdv(k,j,i) > 3.d0) cycle
+    !         log_likelihood = log_likelihood - &
+    !              & (self%dt_obs(k, j, i) - dt_syn(k, j, i))**2 / &
+    !              & (2.d0 * self%dt_stdv(k, j, i)**2) - log_2pi_half &
+    !        & -self%log_dt_stdv(k,j,i)
+    !        
+    !     end do
+    !   end do
+    !end do
+
     do i = 1, self%n_events
-       do j = 1, self%n_sta - 1
-          do k = j + 1, self%n_sta
-             if (self%dt_stdv(k,j,i) == 0.d0) cycle
-             if (self%dt_stdv(k,j,i) > 3.d0) cycle
-             log_likelihood = log_likelihood - &
-                  & (self%dt_obs(k, j, i) - dt_syn(k, j, i))**2 / &
-                  & (2.d0 * self%dt_stdv(k, j, i)**2) - log_2pi_half &
-            & -self%log_dt_stdv(k,j,i)
-            
-         end do
+       do j = 1, self%n_sta 
+          if (self%t_stdv(j,i) == 0.d0) cycle
+          !if (self%t_stdv(j,i) > 1.d0) cycle
+          log_likelihood = log_likelihood - &
+               & (self%t_obs(j, i) - t_syn(j, i))**2 / &
+               & (2.d0 * self%t_stdv(j, i)**2) - log_2pi_half &
+               & -self%log_t_stdv(j,i)
+          
        end do
     end do
+
 
     return 
   end subroutine forward_calc_log_likelihood

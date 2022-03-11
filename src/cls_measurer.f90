@@ -1,6 +1,8 @@
 module cls_measurer
   use mod_mpi
+  use mod_sort, only: find_median
   use cls_line_text, only: line_max
+  use mod_signal_process, only: apply_taper
   use, intrinsic :: iso_fortran_env, only: iostat_end
   use, intrinsic :: iso_c_binding
   implicit none
@@ -30,7 +32,8 @@ module cls_measurer
      double precision, allocatable :: cc_thred(:)
      integer :: n_pair_thred
      logical, allocatable :: detected(:,:)
-     
+     logical :: use_median
+
      type(C_PTR)                            :: plan_r2c, plan_c2r
      real(C_DOUBLE), allocatable            :: r_tmp(:), r2_tmp(:)
      complex(C_DOUBLE_COMPLEX), allocatable :: c_tmp(:), c2_tmp(:)
@@ -54,13 +57,15 @@ contains
   !-------------------------------------------------------------------
   
   type(measurer) function init_measurer(station_names, sta_x, sta_y, &
-       & t_win, t_step, n_pair_thred, verb) result(self)
+       & t_win, t_step, n_pair_thred, use_median, verb) result(self)
     character(line_max), intent(in) :: station_names(:)
     double precision, intent(in) :: sta_x(:), sta_y(:)
     double precision, intent(in) :: t_win, t_step
     integer, intent(in) :: n_pair_thred
+    logical, intent(in) :: use_median
     logical, intent(in) :: verb
     integer :: i, j, k
+    
     self%n_sta = size(station_names)
     allocate(self%station_names(self%n_sta))
     allocate(self%sta_x(self%n_sta))
@@ -73,6 +78,7 @@ contains
     self%t_win = t_win
     self%t_step = t_step
     self%n_pair_thred = n_pair_thred
+    self%use_median = use_median
     
     allocate(self%pair(2, self%n_pair))
     k = 0
@@ -417,6 +423,7 @@ contains
     double precision, intent(out) :: t_stdv(self%n_sta)
     double precision :: a(self%n_sta, self%n_sta)
     double precision :: lag_t(self%n_sta, self%n_sta)
+    double precision :: tmp(self%n_sta - 1)
     double precision :: l
     complex(kind(0d0)) :: cx(self%n, self%n_sta)
     integer :: i, j, ilag_t
@@ -425,7 +432,8 @@ contains
     
     do i = 1, self%n_sta
        l = sum(x(1:self%n,i)**2)
-       self%r_tmp(1:self%n) = x(1:self%n, i) / l
+       self%r_tmp(1:self%n) = apply_taper(self%n, x(1:self%n, i))
+       self%r_tmp(1:self%n) = self%r_tmp(1:self%n) / l
        self%c_tmp = (0.d0, 0.d0)
        call fftw_execute_dft_r2c(self%plan_r2c, self%r_tmp, self%c_tmp)
        cx(1:self%n, i) = self%c_tmp(1:self%n)
@@ -449,12 +457,21 @@ contains
     end do
 
     t = 0.d0
-    do i = 1, self%n_sta
-       do j = 1, self%n_sta
-          t(i) = t(i) - lag_t(i,j)
+    if (.not. self%use_median) then
+       do i = 1, self%n_sta
+          do j = 1, self%n_sta
+             t(i) = t(i) - lag_t(i,j)
+          end do
+          t(i) = t(i) / self%n_sta
        end do
-       t(i) = t(i) / self%n_sta
-    end do
+    else
+       do i = 1, self%n_sta
+          tmp(1:i-1) = lag_t(1:i-1,i)
+          tmp(i:self%n_sta-1) = lag_t(i+1:self%n_sta,i)
+          t(i) = find_median(tmp)
+       end do
+    end if
+    
 
     ! standard deviation
     t_stdv = 0.d0

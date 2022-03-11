@@ -65,6 +65,9 @@ module cls_param
      double precision :: alpha
      integer :: n_pair_thred
 
+     ! Use median for optimization
+     logical :: use_median
+
      ! MCMC
      integer :: n_iter, n_burn, n_interval
      integer :: n_chains
@@ -129,6 +132,7 @@ module cls_param
      procedure :: get_step_size_t_corr => param_get_step_size_t_corr
      procedure :: get_solve_vs => param_get_solve_vs
      procedure :: get_solve_t_corr => param_get_solve_t_corr
+     procedure :: get_use_median => param_get_use_median
   end type param
   
   interface param
@@ -392,6 +396,8 @@ contains
        read(val,*) self%solve_vs
     else if (name == "solve_t_corr") then
        read(val,*) self%solve_t_corr
+    else if (name == "use_median") then
+       read(val,*) self%use_median
     else
        if (self%verb) then
           write(0,*)"ERROR: Invalid parameter name"
@@ -846,5 +852,17 @@ contains
   end function param_get_solve_t_corr
   
   !---------------------------------------------------------------------
+  
+  logical function param_get_use_median(self) result(use_median)
+    class(param), intent(in) :: self
+    
+    use_median = self%use_median
+    
+    return 
+  end function param_get_use_median
+  
+  !---------------------------------------------------------------------
+
+  
 
 end module cls_param

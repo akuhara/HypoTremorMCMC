@@ -186,10 +186,10 @@ contains
                   & self%envelope(n_len, processed(1:n_len, i_cmp))
              processed(1:n_len, i_cmp) = &
                   & self%rectangle_smoothing(n_len, processed(1:n_len, i_cmp), &
-                  & int(2.5d0 / self%dt))
+                  & int(1.5d0 / self%dt)) ! 2.5
              processed(1:n_len, i_cmp) = &
                   & self%rectangle_smoothing(n_len, processed(1:n_len, i_cmp), &
-                  & int(2.5d0 / self%dt))
+                  & int(1.5d0 / self%dt))
           end do
           merged(1:n_len, 1) = self%merge_components(n_len, self%n_cmps, &
                & processed(1:n_len, 1:self%n_cmps))

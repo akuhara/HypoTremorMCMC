@@ -19,6 +19,8 @@ module cls_obs_data
    contains
      procedure :: read_obs_files => obs_data_read_obs_files
      procedure :: make_initial_guess => obs_data_make_initial_guess
+     procedure :: get_t_obs => obs_data_get_t_obs
+     procedure :: get_t_stdv => obs_data_get_t_stdv
      procedure :: get_dt_obs => obs_data_get_dt_obs
      procedure :: get_dt_stdv => obs_data_get_dt_stdv
   end type obs_data
@@ -125,6 +127,29 @@ contains
 
   !-------------------------------------------------------------------------
   
+    function obs_data_get_t_obs(self) result(t_obs)
+    class(obs_data), intent(in) :: self
+    double precision :: t_obs(self%n_sta, self%n_events)
+    
+    t_obs  = self%t_obs
+    
+    return 
+  end function obs_data_get_t_obs
+
+  !-------------------------------------------------------------------------
+  
+  function obs_data_get_t_stdv(self) result(t_stdv)
+    class(obs_data), intent(in) :: self
+    double precision :: t_stdv(self%n_sta, self%n_events)
+    
+    t_stdv  = self%t_stdv
+    
+    return 
+  end function obs_data_get_t_stdv
+    
+  !-------------------------------------------------------------------------
+
+
   function obs_data_get_dt_obs(self) result(dt_obs)
     class(obs_data), intent(in) :: self
     double precision :: dt_obs(self%n_sta, self%n_sta, self%n_events)

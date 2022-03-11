@@ -214,6 +214,7 @@ contains
     do i = 1, self%n_win
        
        x1(1:n) = env1%extract_data(i1, i2, 1)
+       x1(1:n) = apply_taper(n, x1)
        x1 = x1 - sum(x1) / n
        l1 = sqrt(sum(x1**2))
        self%r_tmp = x1 / l1
@@ -223,7 +224,7 @@ contains
        c1 = self%c_tmp
        
        x2(1:n) = env2%extract_data(i1, i2, 1)
-       
+       x2(1:n) = apply_taper(n, x2)
        x2 = x2 - sum(x2) / n
        l2 = sqrt(sum(x2**2))
        self%r_tmp = x2 / l2

@@ -35,6 +35,7 @@ module mod_sort
   implicit none
   
   public quick_sort
+  public find_median
   private swap 
   
 contains
@@ -96,5 +97,24 @@ contains
 
   !---------------------------------------------------------------------
   
+  double precision function find_median(a)
+    double precision, intent(in) :: a(:)
+    double precision, allocatable :: tmp(:)
+    integer :: n
+    n = size(a)
+
+    allocate(tmp(n))
+    tmp(1:n) = a(1:n)
+    call quick_sort(tmp, 1, n)
+    if (mod(n,2) == 1) then
+       find_median = tmp(n/2+1)
+    else
+       find_median = 0.5d0 * (tmp(n/2+1) + tmp(n/2))
+    end if
+    
+    return 
+  end function find_median
+  
+  !---------------------------------------------------------------------
 end module mod_sort
   
