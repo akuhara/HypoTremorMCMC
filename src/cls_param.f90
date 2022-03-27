@@ -83,7 +83,8 @@ module cls_param
      ! Inversion setting
      logical :: solve_vs
      logical :: solve_t_corr
-
+     logical :: use_laplace
+     logical :: forward_diff
 
      ! Verbose
      logical :: verb = .false.
@@ -133,6 +134,8 @@ module cls_param
      procedure :: get_solve_vs => param_get_solve_vs
      procedure :: get_solve_t_corr => param_get_solve_t_corr
      procedure :: get_use_median => param_get_use_median
+     procedure :: get_use_laplace => param_get_use_laplace
+     procedure :: get_forward_diff => param_get_forward_diff
   end type param
   
   interface param
@@ -398,6 +401,10 @@ contains
        read(val,*) self%solve_t_corr
     else if (name == "use_median") then
        read(val,*) self%use_median
+    else if (name == "use_laplace") then
+       read(val,*) self%use_laplace
+    else if (name == "forward_diff") then
+       read(val,*) self%forward_diff
     else
        if (self%verb) then
           write(0,*)"ERROR: Invalid parameter name"
@@ -860,6 +867,26 @@ contains
     
     return 
   end function param_get_use_median
+  
+  !---------------------------------------------------------------------
+
+  logical function param_get_use_laplace(self) result(use_laplace)
+    class(param), intent(in) :: self
+    
+    use_laplace = self%use_laplace
+    
+    return 
+  end function param_get_use_laplace
+  
+  !---------------------------------------------------------------------
+
+  logical function param_get_forward_diff(self) result(forward_diff)
+    class(param), intent(in) :: self
+    
+    forward_diff = self%forward_diff
+    
+    return 
+  end function param_get_forward_diff
   
   !---------------------------------------------------------------------
 

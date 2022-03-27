@@ -60,7 +60,7 @@ program main
 
 
   !
-  call init_random(711111, 12222, 93131, 7555555, rank)
+  call init_random(5551111, 453222, 4444431,6765, rank)
   
   ! Events
   win_id = [ integer :: ]
@@ -90,12 +90,15 @@ program main
   
   ! forward
   fwd = forward(&
-       & n_sta    = para%get_n_stations(), &
-       & n_events = n_events, &
-       & sta_x    = para%get_sta_x(), &
-       & sta_y    = para%get_sta_y(), &
-       & sta_z    = para%get_sta_z(), &
-       & obs      = obs)
+       & n_sta        = para%get_n_stations(), &
+       & n_events     = n_events, &
+       & sta_x        = para%get_sta_x(), &
+       & sta_y        = para%get_sta_y(), &
+       & sta_z        = para%get_sta_z(), &
+       & obs          = obs,               &
+       & use_laplace  = para%get_use_laplace(), &
+       & forward_diff = para%get_forward_diff() &
+       & )
        
 
   ! Initialize parallel MCMC chains

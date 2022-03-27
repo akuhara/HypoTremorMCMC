@@ -9,7 +9,12 @@ module cls_forward
      integer :: n_sta
      double precision, allocatable :: sta_x(:), sta_y(:), sta_z(:)
      double precision, allocatable :: t_stdv(:,:), t_obs(:,:)
+     double precision, allocatable :: dt_stdv(:,:,:), dt_obs(:,:,:)
+     double precision, allocatable :: log_dt_stdv(:,:,:)     
      double precision, allocatable :: log_t_stdv(:,:)
+     
+     logical :: use_laplace
+     logical :: forward_diff
 
    contains
      procedure :: calc_log_likelihood => forward_calc_log_likelihood
@@ -26,10 +31,11 @@ contains
   !------------------------------------------------------------------------------
 
   type(forward) function init_forward(n_sta, n_events, sta_x, sta_y, sta_z, &
-       & obs) result(self)
+       & obs, use_laplace, forward_diff) result(self)
     integer, intent(in) :: n_sta, n_events
     double precision, intent(in) :: sta_x(:), sta_y(:), sta_z(:)
     type(obs_data), intent(in) :: obs
+    logical, intent(in) :: use_laplace, forward_diff
     integer :: i, j, k
 
     self%n_sta = n_sta
@@ -39,7 +45,9 @@ contains
     self%sta_x = sta_x
     self%sta_y = sta_y
     self%sta_z = sta_z
-
+    self%use_laplace = use_laplace
+    self%forward_diff = forward_diff
+    
     self%n_events = n_events
     !self%obs = obs
 
@@ -47,21 +55,52 @@ contains
     allocate(self%t_stdv(self%n_sta, self%n_events))
     allocate(self%log_t_stdv(self%n_sta, self%n_events))
     
-    self%t_obs = obs%get_t_obs()
-    self%t_stdv = obs%get_t_stdv()
+    
+    if (self%forward_diff) then
+       allocate(self%dt_obs(self%n_sta, self%n_sta, self%n_events))
+       allocate(self%dt_stdv(self%n_sta, self%n_sta, self%n_events))
+       allocate(self%log_dt_stdv(self%n_sta, self%n_sta, self%n_events))
+    end if
+
+    
+
+
+    if (self%forward_diff) then
+       self%dt_obs = obs%get_dt_obs()
+       self%dt_stdv = obs%get_dt_stdv()
+    else
+       self%t_obs = obs%get_t_obs()
+       self%t_stdv = obs%get_t_stdv()
+    end if
+       
+
 
     !self%data_used = .false.
-    do concurrent (i=1:self%n_events)
-       do concurrent (j=1:self%n_sta)
-          if (self%t_stdv(j,i) > 1.d-16) then
-             self%log_t_stdv(j, i) = log(self%t_stdv(j, i))
-          else
-             self%log_t_stdv(j, i) =1.d0
-             self%t_stdv(j, i) = 1.d0
-          end if
+    if (self%forward_diff) then
+       do concurrent (i=1:self%n_events)
+          do concurrent (j=1:self%n_sta-1)
+             do concurrent (k=j+1:self%n_sta)
+                if (self%dt_stdv(k,j,i) > 1.d-16) then
+                   self%log_dt_stdv(k, j, i) = log(self%dt_stdv(k, j, i))
+                else
+                   self%log_dt_stdv(k, j, i) =1.d0
+                   self%dt_stdv(k, j, i) = 1.d0
+                end if
+             end do
+          end do
        end do
-    end do
-
+    else
+       do concurrent (i=1:self%n_events)
+          do concurrent (j=1:self%n_sta)
+             if (self%t_stdv(j,i) > 1.d-16) then
+                self%log_t_stdv(j, i) = log(self%t_stdv(j, i))
+             else
+                self%log_t_stdv(j, i) =1.d0
+                self%t_stdv(j, i) = 1.d0
+             end if
+          end do
+       end do
+    end if
 
     
     return 
@@ -74,7 +113,7 @@ contains
     type(model), intent(in) :: hypo, t_corr, vs
     double precision, intent(out) :: t_syn(self%n_sta, self%n_events)
     integer :: i, j
-    double precision :: x, y, z, beta, tc
+    double precision :: x, y, z, beta, tc, t_mean
     
     beta = vs%get_x(1)
     do i = 1, self%n_events
@@ -88,14 +127,17 @@ contains
                &          + (y - self%sta_y(j))**2 &
                &          + (z - self%sta_z(j))**2) &
                & / beta - tc
+          
        end do
     end do
     
     ! Demean
-    do concurrent (i = 1:self%n_events)
-       t_syn(1:self%n_sta,i) = t_syn(1:self%n_sta,i) &
-            & - sum(t_syn(1:self%n_sta,i)) / self%n_sta
-    end do
+    if (.not. self%forward_diff) then
+       do concurrent (i = 1:self%n_events)
+          t_mean = sum(t_syn(1:self%n_sta,i)) / self%n_sta
+          t_syn(1:self%n_sta,i) = t_syn(1:self%n_sta,i) - t_mean
+       end do
+    end if
     
     
     return 
@@ -108,49 +150,71 @@ contains
     type(model), intent(in) :: hypo, t_corr, vs
     double precision, intent(out) :: log_likelihood
     double precision :: t_syn(self%n_sta, self%n_events)
-    !double precision :: dt_syn(self%n_sta, self%n_sta, self%n_events)
-    double precision :: tmp(self%n_sta, self%n_sta, self%n_events)
+    double precision :: dt_syn(self%n_sta, self%n_sta, self%n_events)
+    double precision :: tmp(self%n_sta, self%n_sta, self%n_events), b
     integer :: i, j,  k
     call self%calc_travel_time(hypo, t_corr, vs, t_syn)
-    !call self%calc_dt(t_syn, dt_syn)
+    
+    if (self%forward_diff) then
+       call self%calc_dt(t_syn, dt_syn)
+    end if
 
     log_likelihood = 0.d0
     !return 
 
-    !tmp(:,:,:) = -(self%dt_obs(:,:,:) - dt_syn(:,:,:)) ** 2 / &
-    !     & (2.d0 * self%dt_stdv(:,:,:)) &
-    !     & - log_2pi_half &
-    !     & - self%log_dt_stdv(:,:,:)
-    !log_likelihood = sum(tmp, mask=self%data_used)
-
     
-    !do i = 1, self%n_events
-    !   do j = 1, self%n_sta - 1
-    !      do k = j + 1, self%n_sta
-    !         if (self%dt_stdv(k,j,i) == 0.d0) cycle
-    !         if (self%dt_stdv(k,j,i) > 3.d0) cycle
-    !         log_likelihood = log_likelihood - &
-    !              & (self%dt_obs(k, j, i) - dt_syn(k, j, i))**2 / &
-    !              & (2.d0 * self%dt_stdv(k, j, i)**2) - log_2pi_half &
-    !        & -self%log_dt_stdv(k,j,i)
-    !        
-    !     end do
-    !   end do
-    !end do
-
-    do i = 1, self%n_events
-       do j = 1, self%n_sta 
-          if (self%t_stdv(j,i) == 0.d0) cycle
-          !if (self%t_stdv(j,i) > 1.d0) cycle
-          log_likelihood = log_likelihood - &
-               & (self%t_obs(j, i) - t_syn(j, i))**2 / &
-               & (2.d0 * self%t_stdv(j, i)**2) - log_2pi_half &
-               & -self%log_t_stdv(j,i)
-          
-       end do
-    end do
-
-
+    if (self%forward_diff) then
+       if (.not. self%use_laplace) then
+          do i = 1, self%n_events
+             do j = 1, self%n_sta - 1
+                do k = j + 1, self%n_sta
+                   if (self%dt_stdv(k,j,i) == 0.d0) cycle
+                   log_likelihood = log_likelihood - &
+                        & (self%dt_obs(k, j, i) - dt_syn(k, j, i))**2 / &
+                        & (2.d0 * self%dt_stdv(k, j, i)**2) - log_2pi_half &
+                        & -self%log_dt_stdv(k,j,i)
+                   
+                end do
+             end do
+          end do
+       else
+          do i = 1, self%n_events
+             do j = 1, self%n_sta - 1
+                do k = j + 1, self%n_sta
+                   if (self%dt_stdv(k,j,i) == 0.d0) cycle
+                   log_likelihood = log_likelihood - &
+                        & abs(self%dt_obs(k, j, i) - dt_syn(k, j, i)) / &
+                        & (self%dt_stdv(k,j,i)/sqrt(2.d0)) &
+                        & - 0.5d0 * log(2.d0) - self%log_dt_stdv(k,j,i) 
+                end do
+             end do
+          end do
+       end if
+    else
+       if (.not. self%use_laplace) then
+          do i = 1, self%n_events
+             do j = 1, self%n_sta 
+                if (self%t_stdv(j,i) == 0.d0) cycle
+                !if (self%t_stdv(j,i) > 1.d0) cycle
+                log_likelihood = log_likelihood - &
+                     & (self%t_obs(j, i) - t_syn(j, i))**2 / &
+                     & (2.d0 * self%t_stdv(j, i)**2) - log_2pi_half &
+                     & -self%log_t_stdv(j,i)
+             end do
+          end do
+       else
+          do i = 1, self%n_events
+             do j = 1, self%n_sta 
+                
+                log_likelihood = log_likelihood - &
+                     abs(self%t_obs(j, i) - t_syn(j, i)) / &
+                     & (self%t_stdv(j,i)/sqrt(2.d0)) &
+                     & - 0.5d0 * log(2.d0) - self%log_t_stdv(j,i) 
+             end do
+          end do
+       end if
+    end if
+    
     return 
   end subroutine forward_calc_log_likelihood
 
