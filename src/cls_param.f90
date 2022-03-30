@@ -84,6 +84,7 @@ module cls_param
      logical :: solve_vs
      logical :: solve_t_corr
      logical :: use_laplace
+     logical :: use_covariance
      logical :: forward_diff
 
      ! Verbose
@@ -135,6 +136,7 @@ module cls_param
      procedure :: get_solve_t_corr => param_get_solve_t_corr
      procedure :: get_use_median => param_get_use_median
      procedure :: get_use_laplace => param_get_use_laplace
+     procedure :: get_use_covariance => param_get_use_covariance
      procedure :: get_forward_diff => param_get_forward_diff
   end type param
   
@@ -403,6 +405,8 @@ contains
        read(val,*) self%use_median
     else if (name == "use_laplace") then
        read(val,*) self%use_laplace
+    else if (name == "use_covariance") then
+       read(val,*) self%use_covariance
     else if (name == "forward_diff") then
        read(val,*) self%forward_diff
     else
@@ -877,6 +881,16 @@ contains
     
     return 
   end function param_get_use_laplace
+  
+  !---------------------------------------------------------------------
+
+  logical function param_get_use_covariance(self) result(use_covariance)
+    class(param), intent(in) :: self
+    
+    use_covariance = self%use_covariance
+    
+    return 
+  end function param_get_use_covariance
   
   !---------------------------------------------------------------------
 

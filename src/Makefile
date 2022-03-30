@@ -77,15 +77,15 @@ cls_forward.o: cls_model.mod cls_obs_data.mod
 
 $(HYPO_TREMOR_DETECT): $(OBJS_HYPO_TREMOR_DETECT)
 	@if [ ! -d $(BINDIR) ]; then mkdir $(BINDIR); fi
-	$(FC) $(FFLAGS) $(COV) $(FFTW) $^ -o $@  
+	$(FC) $(FFLAGS) $(COV) $(FFTW) $(LAPACK) $^ -o $@  
 
 $(HYPO_TREMOR_MEASURE): $(OBJS_HYPO_TREMOR_MEASURE)
 	@if [ ! -d $(BINDIR) ]; then mkdir $(BINDIR); fi
-	$(FC) $(FFLAGS) $(COV) $(FFTW) $^ -o $@  
+	$(FC) $(FFLAGS) $(COV) $(FFTW) $(LAPACK) $^ -o $@  
 
 $(HYPO_TREMOR_MCMC): $(OBJS_HYPO_TREMOR_MCMC)
 	@if [ ! -d $(BINDIR) ]; then mkdir $(BINDIR); fi
-	$(FC) $(FFLAGS) $(COV) $(FFTW) $^ -o $@  
+	$(FC) $(FFLAGS) $(COV) $(FFTW) $(LAPACK) $^ -o $@  
 
 
 .PHONY: clean
@@ -93,6 +93,6 @@ clean:
 	rm -f *.mod $(BINDIR)/* *.o
 
 %.o: %.f90
-	$(FC) $(FFLAGS) $(COV) $(FFTW) -c $< -o $*.o 
+	$(FC) $(FFLAGS) $(COV) $(FFTW) $(LAPACK) -c $< -o $*.o 
 %.mod: %.f90 %.o
 	@:
