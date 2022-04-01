@@ -7,18 +7,21 @@ module cls_forward
      private
      integer :: n_events
      integer :: n_sta
+     integer :: n_tri
      double precision, allocatable :: sta_x(:), sta_y(:), sta_z(:)
      double precision, allocatable :: t_stdv(:,:), t_obs(:,:)
      double precision, allocatable :: dt_stdv(:,:,:), dt_obs(:,:,:)
      double precision, allocatable :: log_dt_stdv(:,:,:)     
      double precision, allocatable :: log_t_stdv(:,:)
      double precision, allocatable :: cov(:,:)
-     double precision, allocatable :: inv_cov(:,:,:)
+     double precision, allocatable :: cov_l(:,:)
+     double precision, allocatable :: cov_u(:,:)
      double precision, allocatable :: log_det_cov(:)
-     
+     integer, allocatable :: ipiv(:,:)
      logical :: use_laplace
      logical :: forward_diff
      logical :: use_covariance
+     logical, allocatable :: swap_occur(:)
 
    contains
      procedure :: calc_log_likelihood => forward_calc_log_likelihood
@@ -41,6 +44,7 @@ contains
     double precision, intent(in) :: sta_x(:), sta_y(:), sta_z(:)
     type(obs_data), intent(in) :: obs
     logical, intent(in) :: use_laplace, forward_diff, use_covariance
+    
     integer :: i, j, k
 
     self%n_sta = n_sta
@@ -70,8 +74,12 @@ contains
     
     if (self%use_covariance) then
        allocate(self%cov(self%n_sta, self%n_sta))
-       allocate(self%inv_cov(self%n_sta, self%n_sta, self%n_events))
+       self%n_tri = self%n_sta * (self%n_sta + 1) / 2
+       allocate(self%cov_l(self%n_tri, self%n_events))
+       allocate(self%cov_u(self%n_tri, self%n_events))
        allocate(self%log_det_cov(self%n_events))
+       allocate(self%swap_occur(self%n_events))
+       allocate(self%ipiv(self%n_sta, self%n_events))
        if (self%forward_diff) then
           error stop "use_covariance and forward_diff cannot coexit"
        end if
@@ -169,7 +177,10 @@ contains
     double precision :: t_syn(self%n_sta, self%n_events)
     double precision :: dt_syn(self%n_sta, self%n_sta, self%n_events)
     double precision :: tmp(self%n_sta, self%n_sta, self%n_events), b
-    integer :: i, j,  k
+    integer :: i, j, k, info
+    double precision :: misfit(self%n_sta,1), phi1(self%n_sta), phi
+    double precision :: tmp_u(self%n_sta, 1), tmp_l(self%n_sta, 1)
+    double precision :: tmp_swap
     call self%calc_travel_time(hypo, t_corr, vs, t_syn)
     
     if (self%forward_diff) then
@@ -208,6 +219,36 @@ contains
           end do
        end if
     else
+       if (self%use_covariance) then
+          do i = 1, self%n_events
+             misfit(1:self%n_sta,1) = self%t_obs(:, i) - t_syn(:,i)
+             if (self%swap_occur(i)) then
+                do j = 1, self%n_sta
+                   if (self%ipiv(j,i) /= j) then
+                      misfit(j,1) = tmp_swap
+                      misfit(j,1) = misfit(self%ipiv(j,i),i)
+                      misfit(self%ipiv(j,i),i) = tmp_swap
+                   end if
+                end do
+             end if
+             tmp_l = misfit
+             call dtptrs('L', 'N', 'U', self%n_sta, 1, self%cov_l(:,i), &
+                  & tmp_l, self%n_sta, info)
+             if (info /= 0) then
+                error stop "ERROR in dtptrs L"
+             end if
+             tmp_u = misfit
+             call dtptrs('U', 'T', 'N', self%n_sta, 1, self%cov_u(:,i), &
+                  & tmp_u, self%n_sta, info)
+             if (info /= 0) then
+                error stop "ERROR in dtptrs U"
+             end if
+             phi = dot_product(tmp_u(:,1), tmp_l(:,1))
+             log_likelihood = log_likelihood - &
+                  & 0.5d0 * phi
+          end do
+       end if
+       
        if (.not. self%use_laplace) then
           do i = 1, self%n_events
              do j = 1, self%n_sta 
@@ -268,11 +309,12 @@ contains
     
     r = 1.d0 / dble(self%n_sta)
     r2 = 1.d0 - r
-
+    self%swap_occur = .false.
+    
     do k = 1, self%n_events
        s2 = sum(self%t_stdv(1:self%n_sta, k)**2)
        
-       
+       self%cov(:,:) = 0.d0
        do i = 1, self%n_sta
           si2 = self%t_stdv(i,k) * self%t_stdv(i,k)
           self%cov(i,i) = &
@@ -283,53 +325,65 @@ contains
           si2 = self%t_stdv(i,k) * self%t_stdv(i,k)
           do j = i+1, self%n_sta
              sj2 = self%t_stdv(j,k) * self%t_stdv(j,k)
-             self%cov(j,i) = - r * r2 * si2 - r * r2 * sj2
-             self%cov(i,j) = self%cov(j,i)
+             self%cov(j,i) = - r * r2 * si2 - r * r2 * sj2 
+             !self%cov(i,j) = self%cov(j,i)
           end do
        end do
        
+       ! LU decomposition
        tmp = self%cov
-       
-       ! Cholesky decomposition
        call dgetrf(self%n_sta, self%n_sta, tmp, self%n_sta, ipiv, info)
        if (info /= 0) then
-          error stop "ERROR in Cholesky decomposition"
+          error stop "ERROR in LU decomposition"
        end if
-       
-       ! Determinant
-       self%log_det_cov(k) = 0.d0
        do i = 1, self%n_sta
-          self%log_det_cov(k) = self%log_det_cov(k) + log(abs(tmp(i,i)))
+          if (ipiv(i) /= i) then
+             self%swap_occur(k) = .true.
+             self%ipiv(:, k) = ipiv
+          end if
        end do
-       print *, "det = ", self%log_det_cov(k), exp(self%log_det_cov(k))
-       
-       allocate(work(1))
-       call dgetri(self%n_sta, tmp, self%n_sta, ipiv, work, -1, info)
-       if (info /= 0) then
-          error stop "ERROR in dgetri (lwork query)"
-       end if
-       lwork = int(real(work(1)) + 0.5d0)
-       deallocate(work)
-       allocate(work(lwork))
-       call dgetri(self%n_sta, tmp, self%n_sta, ipiv, work, lwork, info)
-       if (info /= 0) then
-          error stop "ERROR in dgetri (2nd)"
-       end if
-       
-       self%inv_cov(:,:,k) = tmp
-       tmp = matmul(tmp, self%cov)
-
-       do i = 1, 3
-          print *, i, i, tmp(i,i)
+       ! Store U
+       do i =  1, self%n_sta 
+          do j = i, self%n_sta
+             self%cov_u(i+(j-1)*j/2,k) = tmp(i,j)
+          end do
+       end do
+       ! Store L
+       do j = 1, self%n_sta
+          do i = j, self%n_sta
+             if (i/= j) then
+                self%cov_l(i+(j-1)*(2*self%n_sta-j)/2,k) = tmp(i, j)
+             else
+                self%cov_l(i+(j-1)*(2*self%n_sta-j)/2,k) = 1.d0
+             end if
+          end do
        end do
 
-
-          
        
+       
+       !! Determinant
+       !self%log_det_cov(k) = 0.d0
+       !do i = 1, self%n_sta
+       !   self%log_det_cov(k) = self%log_det_cov(k) + log(abs(tmp(i,i)))
+       !end do
+       !
+       !allocate(work(1))
+       !call dgetri(self%n_sta, tmp, self%n_sta, ipiv, work, -1, info)
+       !if (info /= 0) then
+       !   error stop "ERROR in dgetri (lwork query)"
+       !end if
+       !lwork = int(real(work(1)) + 0.5d0)
+       !deallocate(work)
+       !allocate(work(lwork))
+       !call dgetri(self%n_sta, tmp, self%n_sta, ipiv, work, lwork, info)
+       !if (info /= 0) then
+       !   error stop "ERROR in dgetri (2nd)"
+       !end if
+       !
+       !self%inv_cov(:,:,k) = tmp
     end do
     
 
-    stop
     return 
   end subroutine forward_init_cov
  
