@@ -22,7 +22,7 @@ program main
   
   character(line_max) :: param_file, win_id_file
   character(line_max) :: hypo_file, t_corr_file, vs_file
-  logical :: verb
+  logical :: verb, prior_ok
   integer, allocatable :: win_id(:)
   integer :: i, j, io, id, n_events, io_hypo, io_t_corr, io_vs
   double precision, allocatable :: x_mu(:), y_mu(:)
@@ -136,8 +136,8 @@ program main
      do i = 1, n_events
         call hypo%set_prior(i=3*i-2, mu=x_mu(i), sigma=para%get_prior_width_xy())
         call hypo%set_prior(i=3*i-1, mu=y_mu(i), sigma=para%get_prior_width_xy())
-        call hypo%set_prior(i=3*i  , mu=para%get_prior_z(),    &
-             & sigma=para%get_prior_width_z())
+        call hypo%set_prior(i=3*i  , mu=0.d0,  sigma=para%get_prior_z(), &
+             & prior_type=1)
         call hypo%set_perturb(i=3*i-2, step_size=para%get_step_size_xy())
         call hypo%set_perturb(i=3*i-1, step_size=para%get_step_size_xy())
         call hypo%set_perturb(i=3*i  , step_size=para%get_step_size_z())
@@ -192,15 +192,18 @@ program main
         mc = pt%get_mc(j)
 
         ! Proposal
-        call mc%propose_model(hypo_tmp, t_corr_tmp, vs_tmp, log_prior_ratio)
+        call mc%propose_model(hypo_tmp, t_corr_tmp, vs_tmp, &
+             & log_prior_ratio, prior_ok)
 
         ! Forward 
-        call fwd%calc_log_likelihood(hypo_tmp, t_corr_tmp, vs_tmp, &
-             & log_likelihood)
+        if (prior_ok) then
+           call fwd%calc_log_likelihood(hypo_tmp, t_corr_tmp, vs_tmp, &
+                & log_likelihood)
+        end if
 
         ! Judge
         call mc%judge_model(hypo_tmp, t_corr_tmp, vs_tmp, &
-             & log_likelihood, log_prior_ratio)
+             & log_likelihood, log_prior_ratio, prior_ok)
         call pt%set_mc(j, mc)
 
         if (verb .and. j== 1) call mc%one_step_summary()

@@ -100,5 +100,17 @@ contains
     rand_g = sqrt(-2.d0 * log(v1)) * cos(pi2 * v2)
 
   end function rand_g
+
+  !---------------------------------------------------------------------
+
+  double precision function rand_r()
+    double precision :: u
+    
+    u = rand_u2()
+    rand_r = sqrt(-2.d0 * log(u))
+
+  end function rand_r
+    
+
 end module mod_random
   

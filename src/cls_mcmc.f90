@@ -111,12 +111,13 @@ contains
   !---------------------------------------------------------------------
   
   subroutine mcmc_propose_model(self, hypo_proposed, t_corr_proposed, &
-       & vs_proposed, log_prior_ratio)
+       & vs_proposed, log_prior_ratio, prior_ok)
     class(mcmc), intent(inout) :: self
     type(model), intent(out) :: hypo_proposed, t_corr_proposed, vs_proposed
     double precision, intent(out) :: log_prior_ratio
     integer :: itype, id, icmp
-    double precision :: a_select, dp, p1, p2
+    logical, intent(out) :: prior_ok
+    double precision :: a_select
 
     hypo_proposed   = self%hypo
     t_corr_proposed = self%t_corr
@@ -124,26 +125,23 @@ contains
     
     
     a_select = rand_u()
-    dp = 1.d0 / (3 * self%n_events + self%n_sta + 1)
-    p1 = dp
-    p2 = p1 + dp * self%n_sta
-    p1 = -999.d0
-    p2 = -999.d0
 
+    prior_ok = .true. 
+    
     if (a_select < self%p_vs) then
        ! Perturb Vs
-       call vs_proposed%perturb(1, log_prior_ratio)
+       call vs_proposed%perturb(1, log_prior_ratio, prior_ok)
        self%i_proposal_type = 1
     else if (a_select < self%p_vs + self%p_t_corr) then
        ! Perturb t_corr
        id   = int(rand_u() * self%n_sta) + 1
-       call t_corr_proposed%perturb(id, log_prior_ratio)
+       call t_corr_proposed%perturb(id, log_prior_ratio, prior_ok)
        self%i_proposal_type = 2
     else 
        ! Perturb hypocenter
        id   = int(rand_u() * self%n_events) + 1
        icmp = int(rand_u() * 3) 
-       call hypo_proposed%perturb(3*id-icmp, log_prior_ratio)
+       call hypo_proposed%perturb(3*id-icmp, log_prior_ratio, prior_ok)
        self%i_proposal_type = 3
     end if
     
@@ -157,25 +155,30 @@ contains
   !---------------------------------------------------------------------
 
   subroutine mcmc_judge_model(self, hypo, t_corr, vs, log_likelihood, &
-       & log_prior_ratio)
+       & log_prior_ratio, prior_ok)
     class(mcmc), intent(inout) :: self
     type(model), intent(in) :: hypo, vs, t_corr
     double precision, intent(in) :: log_likelihood, log_prior_ratio
+    logical, intent(in) :: prior_ok
     double precision :: ratio
     double precision :: r
     double precision, parameter :: eps = epsilon(1.d0)
     
+
     self%is_accepted = .false.
-    ratio = (log_likelihood - self%log_likelihood) / self%temp
-    ratio = ratio + log_prior_ratio 
-    
-    r = rand_u()
-    if (r >= eps) then
-       if (log(r) <= ratio) then
-          self%is_accepted = .true.
+    if (prior_ok) then
+       ratio = (log_likelihood - self%log_likelihood) / self%temp
+       ratio = ratio + log_prior_ratio 
+       
+       r = rand_u()
+       if (r >= eps) then
+          if (log(r) <= ratio) then
+             self%is_accepted = .true.
+          end if
        end if
     end if
-    
+
+
     if (self%is_accepted) then
        ! Accept model
        self%hypo           = hypo
