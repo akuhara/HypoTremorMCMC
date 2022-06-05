@@ -9,7 +9,7 @@ module cls_forward
      integer :: n_sta
      integer :: n_tri
      double precision, allocatable :: sta_x(:), sta_y(:), sta_z(:)
-     double precision, allocatable :: t_stdv(:,:), t_obs(:,:)
+     double precision, allocatable :: t_stdv(:,:), t_obs(:,:), t_precision(:,:)
      double precision, allocatable :: dt_stdv(:,:,:), dt_obs(:,:,:)
      double precision, allocatable :: log_dt_stdv(:,:,:)     
      double precision, allocatable :: log_t_stdv(:,:)
@@ -64,6 +64,7 @@ contains
     allocate(self%t_obs(self%n_sta, self%n_events))
     allocate(self%t_stdv(self%n_sta, self%n_events))
     allocate(self%log_t_stdv(self%n_sta, self%n_events))
+    allocate(self%t_precision(self%n_sta, self%n_events))
     
     
     if (self%forward_diff) then
@@ -119,9 +120,11 @@ contains
           do concurrent (j=1:self%n_sta)
              if (self%t_stdv(j,i) > 1.d-16) then
                 self%log_t_stdv(j, i) = log(self%t_stdv(j, i))
+                self%t_precision(j, i) = 1.d0 / self%t_stdv(j, i)**2
              else
                 self%log_t_stdv(j, i) =1.d0
                 self%t_stdv(j, i) = 1.d0
+                self%t_precision(j, i) = 1.d0
              end if
           end do
        end do
@@ -159,7 +162,13 @@ contains
     ! Demean
     if (.not. self%forward_diff) then
        do concurrent (i = 1:self%n_events)
-          t_mean = sum(t_syn(1:self%n_sta,i)) / self%n_sta
+          t_mean = &
+               & sum(                                    &
+               &      self%t_precision(1:self%n_sta,i) * &
+               &      (t_syn(1:self%n_sta,i) -      &
+               &       self%t_obs(1:self%n_sta,i))            &
+               &     )                                   &
+               & / sum(self%t_precision(1:self%n_sta,i))
           t_syn(1:self%n_sta,i) = t_syn(1:self%n_sta,i) - t_mean
        end do
     end if
