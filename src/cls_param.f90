@@ -39,6 +39,7 @@ module cls_param
      character(line_max), allocatable :: stations(:)
      integer :: n_stations
      double precision, allocatable :: sta_x(:), sta_y(:), sta_z(:)
+     double precision, allocatable :: sta_amp_fac(:,:)
 
      ! Data ID
      character(line_max) :: data_id_file
@@ -103,6 +104,7 @@ module cls_param
      procedure :: get_sta_y => param_get_sta_y
      procedure :: get_sta_x => param_get_sta_x
      procedure :: get_sta_z => param_get_sta_z
+     procedure :: get_sta_amp_fac => param_get_sta_amp_fac
      procedure :: get_n_data_id => param_get_n_data_id
      procedure :: get_data_id => param_get_data_id
      procedure :: get_comps => param_get_comps
@@ -167,6 +169,12 @@ contains
        write(*,*)
     end if
 
+    ! Read component file
+    if (self%verb) &
+         & write(*,'(3A)')"<< Reading ", trim(self%comp_file), " >>"
+    call self%read_comp_file()
+    if (self%verb) write(*,*)
+
     ! Read station file
     if (self%verb) &
          & write(*,'(3A)')"<< Reading ", trim(self%station_file), " >>"
@@ -179,12 +187,7 @@ contains
     call self%read_data_id_file()
     if (self%verb) write(*,*)
 
-    ! Read component file
-    if (self%verb) &
-         & write(*,'(3A)')"<< Reading ", trim(self%comp_file), " >>"
-    call self%read_comp_file()
-    if (self%verb) write(*,*)
-
+    
     ! Make filenames
     call self%make_filenames()
     !write(*,*)self%filenames
@@ -230,7 +233,7 @@ contains
 
   subroutine param_read_station_file(self)
     class(param), intent(inout) :: self
-    integer :: io, ierr, n_sta, i
+    integer :: io, ierr, n_sta, i, j
     
     open(newunit=io, file=self%station_file, status="old", iostat=ierr)
     if (ierr /= 0) then
@@ -252,10 +255,14 @@ contains
     allocate(self%sta_y(n_sta))
     allocate(self%sta_x(n_sta)) 
     allocate(self%sta_z(n_sta))
+    allocate(self%sta_amp_fac(self%n_cmps, n_sta))
+    
     ! Read lines
     rewind(io)
     do i = 1, n_sta
-       read(io, *) self%stations(i), self%sta_x(i), self%sta_y(i), self%sta_z(i)
+       read(io, *) self%stations(i), &
+            & self%sta_x(i), self%sta_y(i), self%sta_z(i), &
+            & (self%sta_amp_fac(j,i), j= 1, self%n_cmps)
        if (self%verb) then
           write(*,'(1x,a,3F9.3)')trim(self%stations(i)), &
                & self%sta_x(i), self%sta_y(i), self%sta_z(i)
@@ -497,6 +504,18 @@ contains
     
     return 
   end function param_get_sta_z
+
+  !---------------------------------------------------------------------
+
+  function param_get_sta_amp_fac(self, id) result(sta_amp_fac)
+    class(param), intent(in) :: self
+    integer, intent(in) :: id
+    double precision :: sta_amp_fac(self%n_cmps)
+
+    sta_amp_fac = self%sta_amp_fac(:, id)
+    
+    return 
+  end function param_get_sta_amp_fac
 
   !---------------------------------------------------------------------
   

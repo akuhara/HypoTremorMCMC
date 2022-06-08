@@ -18,7 +18,7 @@ module cls_convertor
      character(line_max), allocatable :: filenames(:,:)
      character(line_max)        :: station_name
      character(line_max), allocatable :: comps(:)
-
+     double precision, allocatable :: sta_amp_fac(:)
      
      ! Band pass
      double precision :: f1 = 1.d0
@@ -59,11 +59,12 @@ contains
   !---------------------------------------------------------------------
   
   type(convertor) function init_convertor(t_win, &
-       & filenames, station_name, comps) result(self)
+       & filenames, comps, station_name, sta_amp_fac) result(self)
     double precision, intent(in) :: t_win
     character(line_max), intent(in) :: filenames(:,:)
     character(line_max), intent(in) :: station_name
     character(line_max), intent(in) :: comps(:)
+    double precision, intent(in) :: sta_amp_fac(:)
     integer :: n_files
     
 
@@ -76,6 +77,8 @@ contains
     self%station_name = station_name
     allocate(self%comps(self%n_cmps))
     self%comps = comps
+    allocate(self%sta_amp_fac(self%n_cmps))
+    self%sta_amp_fac = sta_amp_fac
     
     
     return 
@@ -253,8 +256,6 @@ contains
          write(io) (i-1) * dt_out, x_out(i, 1)
       end do
       close(io)
-      
-
     end block
 
 
@@ -422,7 +423,7 @@ contains
     integer :: i, i_cmp
     
     do concurrent (i = 1:n)
-       x_out(i) = sqrt(sum(x(i,1:n_cmps)**2))
+       x_out(i) = sqrt(sum((x(i,1:n_cmps) * self%sta_amp_fac(1:n_cmps))**2))
     end do
           
     return 
