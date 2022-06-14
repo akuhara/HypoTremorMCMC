@@ -13,6 +13,8 @@ module cls_obs_data
      double precision, allocatable :: t_stdv(:,:)
      double precision, allocatable :: dt_obs(:,:,:)
      double precision, allocatable :: dt_stdv(:,:,:)
+     double precision, allocatable :: a_obs(:,:)
+     double precision, allocatable :: a_stdv(:,:)
      double precision, allocatable :: sta_x(:), sta_y(:)
      
      
@@ -23,6 +25,8 @@ module cls_obs_data
      procedure :: get_t_stdv => obs_data_get_t_stdv
      procedure :: get_dt_obs => obs_data_get_dt_obs
      procedure :: get_dt_stdv => obs_data_get_dt_stdv
+     procedure :: get_a_obs => obs_data_get_a_obs
+     procedure :: get_a_stdv => obs_data_get_a_stdv
   end type obs_data
   
   interface obs_data
@@ -50,6 +54,9 @@ contains
     allocate(self%t_stdv(self%n_sta, self%n_events))
     allocate(self%dt_obs(self%n_sta, self%n_sta, self%n_events))
     allocate(self%dt_stdv(self%n_sta, self%n_sta, self%n_events))
+    allocate(self%a_obs(self%n_sta, self%n_events))
+    allocate(self%a_stdv(self%n_sta, self%n_events))
+
 
     allocate(self%sta_x(self%n_sta))
     allocate(self%sta_y(self%n_sta))
@@ -68,7 +75,7 @@ contains
     class(obs_data), intent(inout) :: self
     integer :: i, io, ierr, j, k
     character(line_max) :: obs_file
-    double precision :: dummy1, dummy2, dummy3, dummy4
+    double precision :: dummy1, dummy2
 
     if (self%verb) then
        print *, "<< Reading obs files>>"
@@ -83,9 +90,10 @@ contains
 
        do j = 1, self%n_sta
           read(io,*) dummy1, dummy2, self%t_obs(j,i), self%t_stdv(j,i), &
-               & dummy3, dummy4
+               & self%a_obs(j,i), self%a_stdv(j,i)
           if (i == 1 .and. self%verb) then
              print *, "T=", self%t_obs(j, i), "T_stdv=", self%t_stdv(j,i)
+             print *, "A=", self%a_obs(j, i), "A_stdv=", self%a_stdv(j,i)
           end if
        end do
 
@@ -169,6 +177,28 @@ contains
     
     return 
   end function obs_data_get_dt_stdv
+    
+  !-------------------------------------------------------------------------
+
+  function obs_data_get_a_obs(self) result(a_obs)
+    class(obs_data), intent(in) :: self
+    double precision :: a_obs(self%n_sta, self%n_events)
+    
+    a_obs  = self%a_obs
+    
+    return 
+  end function obs_data_get_a_obs
+
+  !-------------------------------------------------------------------------
+  
+  function obs_data_get_a_stdv(self) result(a_stdv)
+    class(obs_data), intent(in) :: self
+    double precision :: a_stdv(self%n_sta, self%n_events)
+    
+    a_stdv  = self%a_stdv
+    
+    return 
+  end function obs_data_get_a_stdv
     
   !-------------------------------------------------------------------------
     

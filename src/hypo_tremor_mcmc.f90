@@ -12,8 +12,8 @@ program main
   
   implicit none
   integer :: n_args, ierr, rank, n_procs
-  type(model) :: t_corr, hypo, vs
-  type(model) :: t_corr_tmp, hypo_tmp, vs_tmp
+  type(model) :: t_corr, hypo, vs, a_corr, qs
+  type(model) :: t_corr_tmp, hypo_tmp, vs_tmp, a_corr_tmp, qs_tmp
   type(forward) :: fwd
   type(param) :: para
   type(obs_data) :: obs
@@ -22,9 +22,11 @@ program main
   
   character(line_max) :: param_file, win_id_file
   character(line_max) :: hypo_file, t_corr_file, vs_file
+  character(line_max) :: qs_file, a_corr_file
   logical :: verb, prior_ok
   integer, allocatable :: win_id(:)
   integer :: i, j, io, id, n_events, io_hypo, io_t_corr, io_vs
+  integer :: io_qs, io_a_corr
   double precision, allocatable :: x_mu(:), y_mu(:)
   double precision :: dummy
   double precision :: temp, log_prior_ratio, log_likelihood
@@ -129,6 +131,24 @@ program main
      end if
      if (verb) call t_corr%display()
      
+     a_corr = model(&
+          & nx   = para%get_n_stations(), &
+          & verb = verb)
+     if (para%get_solve_a_corr()) then
+        do i = 1, para%get_n_stations()
+           call a_corr%set_prior(i=i, mu=para%get_prior_a_corr(), &
+                & sigma=para%get_prior_width_a_corr()) 
+           call a_corr%set_perturb(i=i, step_size=para%get_step_size_a_corr())
+        end do
+        call a_corr%generate_model()
+     else
+        do i = 1, para%get_n_stations()
+           call a_corr%set_x(i, para%get_prior_a_corr())
+        end do
+     end if
+     if (verb) call a_corr%display()
+
+
      ! ** Hypocenters
      hypo = model(&
           & nx   = 3 * n_events, &
@@ -151,14 +171,25 @@ program main
      call vs%set_perturb(i=1, step_size=para%get_step_size_vs())
      call vs%set_x(1, para%get_prior_vs())
      if (verb) call vs%display()
+
+     ! ** Qs
+     qs = model(nx = 1, verb = verb)
+     call qs%set_prior(i=1, mu=para%get_prior_qs(), sigma=para%get_prior_width_qs())
+     call qs%set_perturb(i=1, step_size=para%get_step_size_qs())
+     call qs%set_x(1, para%get_prior_qs())
+     if (verb) call qs%display()
      
      mc = mcmc(&
           & hypo         = hypo,   &
           & t_corr       = t_corr, &
           & vs           = vs,     &
+          & a_corr       = a_corr, &
+          & qs           = qs,     &
           & n_iter       = para%get_n_iter(), &
           & solve_t_corr = para%get_solve_t_corr(), &
-          & solve_vs     = para%get_solve_vs() &
+          & solve_vs     = para%get_solve_vs(), &
+          & solve_a_corr = para%get_solve_a_corr(), &
+          & solve_qs     = para%get_solve_qs() &
           & )
      
      ! Set temperatures
@@ -179,11 +210,17 @@ program main
   write(hypo_file, '(A,I2.2,A)')"hypo.", rank, ".out"
   write(t_corr_file, '(A,I2.2,A)')"t_corr.", rank, ".out"
   write(vs_file, '(A,I2.2,A)')"vs.", rank, ".out"
+  write(a_corr_file, '(A,I2.2,A)')"a_corr.", rank, ".out"
+  write(qs_file, '(A,I2.2,A)')"qs.", rank, ".out"
   open(newunit=io_hypo, file=hypo_file, status="replace", &
        & access="stream", form="unformatted")
   open(newunit=io_t_corr, file=t_corr_file, status="replace", &
        & access="stream", form="unformatted")
   open(newunit=io_vs, file=vs_file, status="replace", &
+       & access="stream", form="unformatted")
+  open(newunit=io_a_corr, file=a_corr_file, status="replace", &
+       & access="stream", form="unformatted")
+  open(newunit=io_qs, file=qs_file, status="replace", &
        & access="stream", form="unformatted")
 !  open(newunit=io_vs, file=vs_file, status="replace", form="formatted")
   print *, "start MCMC"
@@ -193,16 +230,17 @@ program main
 
         ! Proposal
         call mc%propose_model(hypo_tmp, t_corr_tmp, vs_tmp, &
-             & log_prior_ratio, prior_ok)
+             & a_corr_tmp, qs_tmp, log_prior_ratio, prior_ok)
 
         ! Forward 
         if (prior_ok) then
            call fwd%calc_log_likelihood(hypo_tmp, t_corr_tmp, vs_tmp, &
-                & log_likelihood)
+                & a_corr_tmp, qs_tmp, log_likelihood)
         end if
-
+        
         ! Judge
         call mc%judge_model(hypo_tmp, t_corr_tmp, vs_tmp, &
+             & a_corr_tmp, qs_tmp, &
              & log_likelihood, log_prior_ratio, prior_ok)
         call pt%set_mc(j, mc)
 
@@ -214,6 +252,8 @@ program main
            write(io_vs)i,  mc%write_out_vs()
            write(io_hypo)i, mc%write_out_hypo()
            write(io_t_corr)i, mc%write_out_t_corr()
+           write(io_qs)i,  mc%write_out_qs()
+           write(io_a_corr)i, mc%write_out_a_corr()
         end if
      end do
      ! Swap Temp.

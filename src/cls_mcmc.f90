@@ -7,8 +7,8 @@ module cls_mcmc
   type mcmc 
      private
      integer :: n_events, n_sta
-     type(model) :: hypo, t_corr, vs
-     integer :: n_proposal_type = 3
+     type(model) :: hypo, t_corr, vs, a_corr, qs
+     integer :: n_proposal_type = 5
      integer :: n_iter
 
      integer :: i_iter
@@ -21,10 +21,8 @@ module cls_mcmc
      double precision :: temp = 1.d0
      logical :: is_accepted
 
-     double precision :: p_hypo
-     double precision :: p_vs
-     double precision :: p_t_corr
-
+     double precision :: p_hypo, p_vs, p_t_corr, p_qs, p_a_corr
+     
    contains
      procedure :: propose_model => mcmc_propose_model
      procedure :: judge_model   => mcmc_judge_model
@@ -40,6 +38,8 @@ module cls_mcmc
      procedure :: write_out_hypo => mcmc_write_out_hypo
      procedure :: write_out_t_corr => mcmc_write_out_t_corr
      procedure :: write_out_vs => mcmc_write_out_vs
+     procedure :: write_out_a_corr => mcmc_write_out_a_corr
+     procedure :: write_out_qs => mcmc_write_out_qs
   end type mcmc
   
   interface mcmc
@@ -51,18 +51,21 @@ contains
 
   !---------------------------------------------------------------------
   
-  type(mcmc) function init_mcmc(hypo, t_corr, vs, n_iter, &
-       & solve_t_corr, solve_vs) result(self)
+  type(mcmc) function init_mcmc(hypo, t_corr, vs, a_corr, qs, n_iter, &
+       & solve_t_corr, solve_vs, solve_a_corr, solve_qs) result(self)
     type(model), intent(in) :: hypo, t_corr, vs
+    type(model), intent(in) :: qs, a_corr
     integer, intent(in) :: n_iter
     logical, intent(in) :: solve_t_corr, solve_vs
-    integer :: n_hypo, n_t_corr, n_vs
+    logical, intent(in) :: solve_a_corr, solve_qs
 
     self%hypo     = hypo
     self%n_events = hypo%get_nx() / 3
     self%t_corr   = t_corr
     self%n_sta    = t_corr%get_nx()
+    self%a_corr   = a_corr
     self%vs       = vs
+    self%qs       = qs
     
     allocate(self%n_propose(self%n_proposal_type))
     allocate(self%n_accept(self%n_proposal_type))
@@ -73,47 +76,36 @@ contains
     self%log_likelihood = -9.d+300
 
     ! set proposal probability
-    n_hypo = 3 * self%n_events
-    if (solve_vs) then
-       n_vs = 1
-    else
-       n_vs = 0
-    end if
-    if (solve_t_corr) then
-       n_t_corr = self%n_sta
-    else
-       n_t_corr = 0
-    end if
-    !self%p_hypo     = dble(n_hypo)   / dble(n_hypo + n_t_corr + n_vs)
-    !self%p_vs       = dble(n_vs)     / dble(n_hypo + n_t_corr + n_vs)
-    !self%p_t_corr   = dble(n_t_corr) / dble(n_hypo + n_t_corr + n_vs)
+    self%p_vs = 0.d0
+    self%p_t_corr = 0.d0
+    self%p_qs = 0.d0
+    self%p_a_corr = 0.d0
     if (solve_vs) then
        self%p_vs = 0.025d0
-    else
-       self%p_vs = 0.0d0
     end if
-
     if (solve_t_corr) then
        self%p_t_corr = 0.025d0
-    else
-       self%p_t_corr = 0.0d0
     end if
+    if (solve_qs) then
+       self%p_qs = 0.025d0
+    end if
+    if (solve_a_corr) then
+       self%p_a_corr = 0.025d0
+    end if
+    self%p_hypo = 1.d0 - self%p_vs - self%p_t_corr &
+         & - self%p_qs - self%p_a_corr
     
-    self%p_hypo = 1.d0 - self%p_vs - self%p_t_corr
-    
-    
-    
-
-
     return 
   end function init_mcmc
 
   !---------------------------------------------------------------------
   
   subroutine mcmc_propose_model(self, hypo_proposed, t_corr_proposed, &
-       & vs_proposed, log_prior_ratio, prior_ok)
+       & vs_proposed, a_corr_proposed, qs_proposed, &
+       & log_prior_ratio, prior_ok)
     class(mcmc), intent(inout) :: self
     type(model), intent(out) :: hypo_proposed, t_corr_proposed, vs_proposed
+    type(model), intent(out) :: a_corr_proposed, qs_proposed
     double precision, intent(out) :: log_prior_ratio
     integer :: itype, id, icmp
     logical, intent(out) :: prior_ok
@@ -122,7 +114,8 @@ contains
     hypo_proposed   = self%hypo
     t_corr_proposed = self%t_corr
     vs_proposed     = self%vs
-    
+    a_corr_proposed = self%a_corr
+    qs_proposed     = self%qs
     
     a_select = rand_u()
 
@@ -137,12 +130,21 @@ contains
        id   = int(rand_u() * self%n_sta) + 1
        call t_corr_proposed%perturb(id, log_prior_ratio, prior_ok)
        self%i_proposal_type = 2
+    else if (a_select < self%p_vs + self%p_t_corr + self%p_qs) then
+       ! Perturb Qs
+       call qs_proposed%perturb(1, log_prior_ratio, prior_ok)
+       self%i_proposal_type = 3
+    else if (a_select < self%p_vs + self%p_t_corr + self%p_qs &
+         & + self%p_a_corr) then
+       ! Perturb a_corr
+       call a_corr_proposed%perturb(1, log_prior_ratio, prior_ok)
+       self%i_proposal_type = 4
     else 
        ! Perturb hypocenter
        id   = int(rand_u() * self%n_events) + 1
        icmp = int(rand_u() * 3) 
        call hypo_proposed%perturb(3*id-icmp, log_prior_ratio, prior_ok)
-       self%i_proposal_type = 3
+       self%i_proposal_type = 5
     end if
     
     ! Count proposal
@@ -154,10 +156,10 @@ contains
 
   !---------------------------------------------------------------------
 
-  subroutine mcmc_judge_model(self, hypo, t_corr, vs, log_likelihood, &
-       & log_prior_ratio, prior_ok)
+  subroutine mcmc_judge_model(self, hypo, t_corr, vs, a_corr, qs, &
+       & log_likelihood, log_prior_ratio, prior_ok)
     class(mcmc), intent(inout) :: self
-    type(model), intent(in) :: hypo, vs, t_corr
+    type(model), intent(in) :: hypo, vs, t_corr, qs, a_corr
     double precision, intent(in) :: log_likelihood, log_prior_ratio
     logical, intent(in) :: prior_ok
     double precision :: ratio
@@ -184,6 +186,8 @@ contains
        self%hypo           = hypo
        self%t_corr         = t_corr
        self%vs             = vs
+       self%a_corr         = a_corr
+       self%qs             = qs
        self%log_likelihood = log_likelihood
        self%n_accept(self%i_proposal_type) = &
          & self%n_accept(self%i_proposal_type) + 1
@@ -331,6 +335,27 @@ contains
     
     return 
   end function mcmc_write_out_vs
+
+  !---------------------------------------------------------------------
+
+  function mcmc_write_out_a_corr(self) result(out)
+    class(mcmc), intent(inout) :: self
+    double precision :: out(self%n_sta)
+    
+    out = self%a_corr%get_all_x()
+    
+    return 
+  end function mcmc_write_out_a_corr
+
+  !---------------------------------------------------------------------
+
+  double precision function mcmc_write_out_qs(self) result(out)
+    class(mcmc), intent(inout) :: self
+    
+    out = self%qs%get_x(1)
+    
+    return 
+  end function mcmc_write_out_qs
 
   !---------------------------------------------------------------------
   

@@ -77,13 +77,18 @@ module cls_param
      double precision :: prior_width_xy, prior_width_z
      double precision :: prior_xy, prior_z
      double precision :: prior_width_vs, prior_vs
+     double precision :: prior_width_qs, prior_qs
      double precision :: prior_width_t_corr, prior_t_corr
+     double precision :: prior_width_a_corr, prior_a_corr
      double precision :: step_size_xy, step_size_z
      double precision :: step_size_vs, step_size_t_corr
+     double precision :: step_size_qs, step_size_a_corr
      
      ! Inversion setting
      logical :: solve_vs
      logical :: solve_t_corr
+     logical :: solve_qs
+     logical :: solve_a_corr
      logical :: use_laplace
      logical :: use_covariance
      logical :: forward_diff
@@ -128,14 +133,22 @@ module cls_param
      procedure :: get_prior_z => param_get_prior_z
      procedure :: get_prior_vs => param_get_prior_vs
      procedure :: get_prior_width_vs => param_get_prior_width_vs
+     procedure :: get_prior_qs => param_get_prior_qs
+     procedure :: get_prior_width_qs => param_get_prior_width_qs
      procedure :: get_prior_t_corr => param_get_prior_t_corr
      procedure :: get_prior_width_t_corr => param_get_prior_width_t_corr
+     procedure :: get_prior_a_corr => param_get_prior_a_corr
+     procedure :: get_prior_width_a_corr => param_get_prior_width_a_corr
      procedure :: get_step_size_z => param_get_step_size_z
      procedure :: get_step_size_xy => param_get_step_size_xy
      procedure :: get_step_size_vs => param_get_step_size_vs
+     procedure :: get_step_size_qs => param_get_step_size_qs
      procedure :: get_step_size_t_corr => param_get_step_size_t_corr
+     procedure :: get_step_size_a_corr => param_get_step_size_a_corr
      procedure :: get_solve_vs => param_get_solve_vs
      procedure :: get_solve_t_corr => param_get_solve_t_corr
+     procedure :: get_solve_qs => param_get_solve_qs
+     procedure :: get_solve_a_corr => param_get_solve_a_corr
      procedure :: get_use_median => param_get_use_median
      procedure :: get_use_laplace => param_get_use_laplace
      procedure :: get_use_covariance => param_get_use_covariance
@@ -392,10 +405,18 @@ contains
        read(val,*) self%prior_vs
     else if (name == "prior_width_vs") then
        read(val,*) self%prior_width_vs
+    else if (name == "prior_qs") then
+       read(val,*) self%prior_qs
+    else if (name == "prior_width_qs") then
+       read(val,*) self%prior_width_qs
     else if (name == "prior_t_corr") then
        read(val,*) self%prior_t_corr
     else if (name == "prior_width_t_corr") then
        read(val,*) self%prior_width_t_corr
+    else if (name == "prior_a_corr") then
+       read(val,*) self%prior_a_corr
+    else if (name == "prior_width_a_corr") then
+       read(val,*) self%prior_width_a_corr
     else if (name == "step_size_xy") then
        read(val,*) self%step_size_xy
     else if (name == "step_size_z") then
@@ -404,10 +425,18 @@ contains
        read(val,*) self%step_size_vs
     else if (name == "step_size_t_corr") then
        read(val,*) self%step_size_t_corr
+    else if (name == "step_size_qs") then
+       read(val,*) self%step_size_qs
+    else if (name == "step_size_a_corr") then
+       read(val,*) self%step_size_a_corr
     else if (name == "solve_vs") then
        read(val,*) self%solve_vs
+    else if (name == "solve_qs") then
+       read(val,*) self%solve_qs
     else if (name == "solve_t_corr") then
        read(val,*) self%solve_t_corr
+    else if (name == "solve_a_corr") then
+       read(val,*) self%solve_a_corr
     else if (name == "use_median") then
        read(val,*) self%use_median
     else if (name == "use_laplace") then
@@ -795,6 +824,28 @@ contains
 
   !---------------------------------------------------------------------
 
+  double precision function param_get_prior_width_qs(self) &
+       & result(prior_width_qs)
+    class(param), intent(in) :: self
+    
+    prior_width_qs = self%prior_width_qs
+
+    return 
+  end function param_get_prior_width_qs
+  
+  !---------------------------------------------------------------------
+  
+  double precision function param_get_prior_qs(self) &
+       & result(prior_qs)
+    class(param), intent(in) :: self
+    
+    prior_qs = self%prior_qs
+
+    return 
+  end function param_get_prior_qs
+
+  !---------------------------------------------------------------------
+
   double precision function param_get_prior_width_t_corr(self) &
        & result(prior_width_t_corr)
     class(param), intent(in) :: self
@@ -814,6 +865,28 @@ contains
 
     return 
   end function param_get_prior_t_corr
+
+  !---------------------------------------------------------------------
+
+  double precision function param_get_prior_width_a_corr(self) &
+       & result(prior_width_a_corr)
+    class(param), intent(in) :: self
+    
+    prior_width_a_corr = self%prior_width_a_corr
+
+    return 
+  end function param_get_prior_width_a_corr
+  
+  !---------------------------------------------------------------------
+  
+  double precision function param_get_prior_a_corr(self) &
+       & result(prior_a_corr)
+    class(param), intent(in) :: self
+    
+    prior_a_corr = self%prior_a_corr
+
+    return 
+  end function param_get_prior_a_corr
 
   !---------------------------------------------------------------------
   
@@ -836,7 +909,8 @@ contains
 
     return 
   end function param_get_step_size_z
-  
+
+
   !---------------------------------------------------------------------
 
     double precision function param_get_step_size_t_corr(self) &
@@ -849,6 +923,17 @@ contains
   end function param_get_step_size_t_corr
   
   !---------------------------------------------------------------------
+
+    double precision function param_get_step_size_a_corr(self) &
+       & result(step_size_a_corr)
+    class(param), intent(in) :: self
+    
+    step_size_a_corr = self%step_size_a_corr
+
+    return 
+  end function param_get_step_size_a_corr
+  
+  !---------------------------------------------------------------------
   
   double precision function param_get_step_size_vs(self) &
        & result(step_size_vs)
@@ -858,6 +943,17 @@ contains
 
     return 
   end function param_get_step_size_vs
+
+  !---------------------------------------------------------------------
+  
+  double precision function param_get_step_size_qs(self) &
+       & result(step_size_qs)
+    class(param), intent(in) :: self
+    
+    step_size_qs = self%step_size_qs
+
+    return 
+  end function param_get_step_size_qs
   
   !---------------------------------------------------------------------
 
@@ -880,6 +976,28 @@ contains
 
     return 
   end function param_get_solve_t_corr
+  
+  !---------------------------------------------------------------------
+
+  logical function param_get_solve_qs(self) &
+       & result(solve_qs)
+    class(param), intent(in) :: self
+    
+    solve_qs = self%solve_qs
+
+    return 
+  end function param_get_solve_qs
+  
+  !---------------------------------------------------------------------
+
+  logical function param_get_solve_a_corr(self) &
+       & result(solve_a_corr)
+    class(param), intent(in) :: self
+    
+    solve_a_corr = self%solve_a_corr
+
+    return 
+  end function param_get_solve_a_corr
   
   !---------------------------------------------------------------------
   
