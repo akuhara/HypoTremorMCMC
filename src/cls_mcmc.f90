@@ -137,7 +137,8 @@ contains
     else if (a_select < self%p_vs + self%p_t_corr + self%p_qs &
          & + self%p_a_corr) then
        ! Perturb a_corr
-       call a_corr_proposed%perturb(1, log_prior_ratio, prior_ok)
+       id   = int(rand_u() * self%n_sta) + 1
+       call a_corr_proposed%perturb(id, log_prior_ratio, prior_ok)
        self%i_proposal_type = 4
     else 
        ! Perturb hypocenter

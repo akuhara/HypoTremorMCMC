@@ -253,7 +253,7 @@ contains
     double precision :: tmp_swap
     
     call self%calc_travel_time(hypo, t_corr, vs, t_syn)
-    !call self%calc_amp(hypo, a_corr, qs, vs, a_syn)
+    call self%calc_amp(hypo, a_corr, qs, vs, a_syn)
     
     !if (self%forward_diff) then
     !   call self%calc_dt(t_syn, dt_syn)
@@ -268,10 +268,10 @@ contains
                & (self%t_obs(j, i) - t_syn(j, i))**2 / &
                & (2.d0 * self%t_stdv(j, i)**2) - log_2pi_half &
                & -self%log_t_stdv(j,i)
-          !log_likelihood = log_likelihood - &
-          !     & (self%a_obs(j, i) - a_syn(j, i))**2 / &
-          !     & (2.d0 * self%a_stdv(j, i)**2) - log_2pi_half &
-          !     & -self%log_a_stdv(j,i)
+          log_likelihood = log_likelihood - &
+               & (self%a_obs(j, i) - a_syn(j, i))**2 / &
+               & (2.d0 * self%a_stdv(j, i)**2) - log_2pi_half &
+               & -self%log_a_stdv(j,i)
        end do
     end do
 
