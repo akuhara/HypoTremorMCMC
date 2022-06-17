@@ -97,10 +97,7 @@ program main
        & sta_x          = para%get_sta_x(), &
        & sta_y          = para%get_sta_y(), &
        & sta_z          = para%get_sta_z(), &
-       & obs            = obs,               &
-       & use_laplace    = para%get_use_laplace(), &
-       & use_covariance = para%get_use_covariance(), &
-       & forward_diff   = para%get_forward_diff() &
+       & obs            = obs               &
        & )
        
 

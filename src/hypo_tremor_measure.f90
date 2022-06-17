@@ -40,7 +40,6 @@ program main
        & t_win         = para%get_t_win_corr(), &
        & t_step        = para%get_t_step_corr(), &
        & n_pair_thred  = para%get_n_pair_thred(), &
-       & use_median    = para%get_use_median(), &
        & verb          = verb)
   call msr%scan_cc()
   call mpi_barrier(MPI_COMM_WORLD, ierr)

@@ -1,6 +1,5 @@
 module cls_measurer
   use mod_mpi
-  use mod_sort, only: find_median
   use cls_line_text, only: line_max
   use mod_signal_process, only: apply_taper
   use, intrinsic :: iso_fortran_env, only: iostat_end
@@ -32,7 +31,6 @@ module cls_measurer
      double precision, allocatable :: cc_thred(:)
      integer :: n_pair_thred
      logical, allocatable :: detected(:,:)
-     logical :: use_median
 
      type(C_PTR)                            :: plan_r2c, plan_c2r
      real(C_DOUBLE), allocatable            :: r_tmp(:), r2_tmp(:)
@@ -57,12 +55,11 @@ contains
   !-------------------------------------------------------------------
   
   type(measurer) function init_measurer(station_names, sta_x, sta_y, &
-       & t_win, t_step, n_pair_thred, use_median, verb) result(self)
+       & t_win, t_step, n_pair_thred, verb) result(self)
     character(line_max), intent(in) :: station_names(:)
     double precision, intent(in) :: sta_x(:), sta_y(:)
     double precision, intent(in) :: t_win, t_step
     integer, intent(in) :: n_pair_thred
-    logical, intent(in) :: use_median
     logical, intent(in) :: verb
     integer :: i, j, k
     
@@ -78,7 +75,6 @@ contains
     self%t_win = t_win
     self%t_step = t_step
     self%n_pair_thred = n_pair_thred
-    self%use_median = use_median
     
     allocate(self%pair(2, self%n_pair))
     k = 0
@@ -457,20 +453,12 @@ contains
     end do
 
     t = 0.d0
-    if (.not. self%use_median) then
-       do i = 1, self%n_sta
-          do j = 1, self%n_sta
-             t(i) = t(i) - lag_t(i,j)
-          end do
-          t(i) = t(i) / self%n_sta
+    do i = 1, self%n_sta
+       do j = 1, self%n_sta
+          t(i) = t(i) - lag_t(i,j)
        end do
-    else
-       do i = 1, self%n_sta
-          tmp(1:i-1) = lag_t(1:i-1,i)
-          tmp(i:self%n_sta-1) = lag_t(i+1:self%n_sta,i)
-          t(i) = find_median(tmp)
-       end do
-    end if
+       t(i) = t(i) / self%n_sta
+    end do
     
 
     ! standard deviation

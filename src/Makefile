@@ -3,14 +3,14 @@
 #-----------------------------------------------------------------------
 
 # Example 1. GNU fortran for debug
-#FC     = mpif90
-#FFLAGS = -pg -Wall -pedantic -fbounds-check -O0 -std=f2008 \
-#         -Wuninitialized -ffpe-trap=invalid,zero,overflow -fbacktrace \
-#	 -fconvert=big-endian
+FC     = mpif90
+FFLAGS = -pg -Wall -pedantic -fbounds-check -O0 -std=f2008 \
+         -Wuninitialized -ffpe-trap=invalid,zero,overflow -fbacktrace \
+	 -fconvert=big-endian
 
 # Example 2. GNU fortran for fast computation
-FC     = mpif90
-FFLAGS = -ffast-math -march=native -mtune=native -O3 -fno-range-check \
+#FC     = mpif90
+#FFLAGS = -ffast-math -march=native -mtune=native -O3 -fno-range-check \
          -fconvert=big-endian
 
 # Example 3. Intel compiler for fast computation
@@ -72,7 +72,7 @@ cls_param.o: cls_line_text.mod
 cls_convertor.o: cls_c3_data.mod cls_line_text.mod mod_signal_process.mod
 cls_detector.o: cls_c3_data.mod cls_line_text.mod mod_signal_process.mod \
                 mod_sort.mod
-cls_measurer.o: cls_line_text.mod mod_mpi.mod mod_signal_process.mod mod_sort.mod
+cls_measurer.o: cls_line_text.mod mod_mpi.mod mod_signal_process.mod
 cls_forward.o: cls_model.mod cls_obs_data.mod
 
 $(HYPO_TREMOR_DETECT): $(OBJS_HYPO_TREMOR_DETECT)
