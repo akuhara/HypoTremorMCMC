@@ -46,7 +46,7 @@ module cls_c3_data
      double precision              :: dt
      double precision, allocatable :: data(:,:) ! size(n_smp, n_cmps)
 
-     double precision              :: fac_memory_alloc = 4.d0
+     double precision              :: fac_memory_alloc = 4.0d0
     
    contains
      procedure :: read_sac     => c3_data_read_sac
@@ -228,6 +228,7 @@ contains
        tmp(self%n_smp+1:self%n_smp+n, 1:self%n_cmps) =&
             & x(1:n, 1:self%n_cmps)
        call move_alloc(from=tmp, to=self%data)
+       print *, "n_new=", n_new
        self%n_smp = self%n_smp + n
     else
        

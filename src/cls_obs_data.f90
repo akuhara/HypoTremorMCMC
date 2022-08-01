@@ -124,7 +124,7 @@ contains
     
     
     do i = 1, self%n_events
-       ista = minloc(self%t_obs(:,i), dim=1)
+       ista = maxloc(self%a_obs(:,i), dim=1)
        x_mu(i) = self%sta_x(ista)
        y_mu(i) = self%sta_y(ista)
     end do
