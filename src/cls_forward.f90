@@ -16,7 +16,7 @@ module cls_forward
      double precision, allocatable :: log_a_stdv(:,:)
      
    contains
-     procedure :: calc_log_likelihood => forward_calc_log_likelihood
+     procedure :: calc_log_likelihood_all => forward_calc_log_likelihood_all
      procedure :: calc_travel_time => forward_calc_travel_time
      procedure :: calc_amp => forward_calc_amp
   end type forward
@@ -170,8 +170,8 @@ contains
     
   !------------------------------------------------------------------------------
   
-  subroutine forward_calc_log_likelihood(self, hypo, t_corr, vs, a_corr, qs, &
-       & log_likelihood)
+  subroutine forward_calc_log_likelihood_all(self, hypo, t_corr, vs, &
+       & a_corr, qs, log_likelihood)
     class(forward), intent(inout) :: self
     type(model), intent(in) :: hypo, t_corr, vs, a_corr, qs
     double precision, intent(out) :: log_likelihood
@@ -198,7 +198,7 @@ contains
     end do
 
     return 
-  end subroutine forward_calc_log_likelihood
+  end subroutine forward_calc_log_likelihood_all
 
   !------------------------------------------------------------------------------
 

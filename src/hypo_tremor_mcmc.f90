@@ -190,6 +190,10 @@ program main
           & solve_qs     = para%get_solve_qs() &
           & )
      
+     call fwd%calc_log_likelihood_all(hypo, t_corr, vs, &
+                & a_corr, qs, log_likelihood)
+
+
      ! Set temperatures
      if (j <= para%get_n_cool()) then
         call mc%set_temp(1.d0)
@@ -199,6 +203,8 @@ program main
         call mc%set_temp(temp)
      end if
      call pt%set_mc(j, mc)
+     
+
 
   end do
   
@@ -233,7 +239,7 @@ program main
 
         ! Forward 
         if (prior_ok) then
-           call fwd%calc_log_likelihood(hypo_tmp, t_corr_tmp, vs_tmp, &
+           call fwd%calc_log_likelihood_all(hypo_tmp, t_corr_tmp, vs_tmp, &
                 & a_corr_tmp, qs_tmp, log_likelihood)
         end if
         
@@ -243,7 +249,9 @@ program main
              & log_likelihood, log_prior_ratio, prior_ok)
         call pt%set_mc(j, mc)
 
-        if (verb .and. j== 1) call mc%one_step_summary()
+        if (verb .and. j== 1 .and. mod(i,1000) == 0) then 
+           call mc%one_step_summary()
+        end if
         
         ! Recording
         if (mc%get_temp() < 1.d0 + eps .and. i > para%get_n_burn() &
