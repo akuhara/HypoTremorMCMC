@@ -102,11 +102,12 @@ contains
   
   subroutine mcmc_propose_model(self, hypo_proposed, t_corr_proposed, &
        & vs_proposed, a_corr_proposed, qs_proposed, &
-       & log_prior_ratio, prior_ok)
+       & log_prior_ratio, prior_ok, prop_type, target_id)
     class(mcmc), intent(inout) :: self
     type(model), intent(out) :: hypo_proposed, t_corr_proposed, vs_proposed
     type(model), intent(out) :: a_corr_proposed, qs_proposed
     double precision, intent(out) :: log_prior_ratio
+    integer, intent(out) :: prop_type, target_id
     integer :: itype, id, icmp
     logical, intent(out) :: prior_ok
     double precision :: a_select
@@ -125,28 +126,35 @@ contains
        ! Perturb Vs
        call vs_proposed%perturb(1, log_prior_ratio, prior_ok)
        self%i_proposal_type = 1
+       target_id = 0
     else if (a_select < self%p_vs + self%p_t_corr) then
        ! Perturb t_corr
        id   = int(rand_u() * self%n_sta) + 1
        call t_corr_proposed%perturb(id, log_prior_ratio, prior_ok)
        self%i_proposal_type = 2
+       target_id = id
     else if (a_select < self%p_vs + self%p_t_corr + self%p_qs) then
        ! Perturb Qs
        call qs_proposed%perturb(1, log_prior_ratio, prior_ok)
        self%i_proposal_type = 3
+       target_id = 0
     else if (a_select < self%p_vs + self%p_t_corr + self%p_qs &
          & + self%p_a_corr) then
        ! Perturb a_corr
        id   = int(rand_u() * self%n_sta) + 1
        call a_corr_proposed%perturb(id, log_prior_ratio, prior_ok)
        self%i_proposal_type = 4
+       target_id = id
     else 
        ! Perturb hypocenter
        id   = int(rand_u() * self%n_events) + 1
        icmp = int(rand_u() * 3) 
        call hypo_proposed%perturb(3*id-icmp, log_prior_ratio, prior_ok)
        self%i_proposal_type = 5
+       target_id = 3 * id - icmp
     end if
+    prop_type = self%i_proposal_type
+    
     
     ! Count proposal
     self%n_propose(self%i_proposal_type) = &

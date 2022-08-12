@@ -27,6 +27,7 @@ program main
   integer, allocatable :: win_id(:)
   integer :: i, j, io, id, n_events, io_hypo, io_t_corr, io_vs
   integer :: io_qs, io_a_corr
+  integer :: prop_type, target_id
   double precision, allocatable :: x_mu(:), y_mu(:)
   double precision :: dummy
   double precision :: temp, log_prior_ratio, log_likelihood
@@ -227,7 +228,8 @@ program main
 
         ! Proposal
         call mc%propose_model(hypo_tmp, t_corr_tmp, vs_tmp, &
-             & a_corr_tmp, qs_tmp, log_prior_ratio, prior_ok)
+             & a_corr_tmp, qs_tmp, log_prior_ratio, prior_ok, &
+             & prop_type, target_id)
 
         ! Forward 
         if (prior_ok) then
