@@ -15,6 +15,7 @@ module cls_mcmc
      integer, allocatable :: n_propose(:)
      integer, allocatable :: n_accept(:)
      integer :: i_proposal_type
+     integer :: target_id
      double precision :: log_likelihood
      double precision, allocatable :: likelihood_saved(:)
      double precision, allocatable :: temp_saved(:)
@@ -35,6 +36,11 @@ module cls_mcmc
      procedure :: get_n_propose => mcmc_get_n_propose
      procedure :: get_n_accept => mcmc_get_n_accept
      procedure :: get_n_iter => mcmc_get_n_iter
+     procedure :: get_hypo => mcmc_get_hypo
+     procedure :: get_vs => mcmc_get_vs
+     procedure :: get_qs => mcmc_get_qs
+     procedure :: get_t_corr => mcmc_get_t_corr
+     procedure :: get_a_corr => mcmc_get_a_corr
      procedure :: write_out_hypo => mcmc_write_out_hypo
      procedure :: write_out_t_corr => mcmc_write_out_t_corr
      procedure :: write_out_vs => mcmc_write_out_vs
@@ -312,6 +318,61 @@ contains
 
     return 
   end function mcmc_get_n_iter
+  
+  !---------------------------------------------------------------------
+
+  function mcmc_get_hypo(self) result(hypo)
+    class(mcmc), intent(in) :: self
+    type(model) :: hypo
+    
+    hypo = self%hypo
+    
+    return 
+  end function mcmc_get_hypo
+
+  !---------------------------------------------------------------------
+
+  function mcmc_get_vs(self) result(vs)
+    class(mcmc), intent(in) :: self
+    type(model) :: vs
+    
+    vs = self%vs
+    
+    return 
+  end function mcmc_get_vs
+
+  !---------------------------------------------------------------------
+
+  function mcmc_get_qs(self) result(qs)
+    class(mcmc), intent(in) :: self
+    type(model) :: qs
+    
+    qs = self%qs
+    
+    return 
+  end function mcmc_get_qs
+
+  !---------------------------------------------------------------------
+
+  function mcmc_get_t_corr(self) result(t_corr)
+    class(mcmc), intent(in) :: self
+    type(model) :: t_corr
+    
+    t_corr = self%t_corr
+    
+    return 
+  end function mcmc_get_t_corr
+
+  !---------------------------------------------------------------------
+
+  function mcmc_get_a_corr(self) result(a_corr)
+    class(mcmc), intent(in) :: self
+    type(model) :: a_corr
+    
+    a_corr = self%a_corr
+    
+    return 
+  end function mcmc_get_a_corr
   
   !---------------------------------------------------------------------
   
