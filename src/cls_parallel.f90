@@ -17,7 +17,6 @@ module cls_parallel
      procedure :: get_rank => parallel_get_rank
      procedure :: swap_temperature => parallel_swap_temperature
      procedure :: select_pair => parallel_select_pair
-     procedure :: output_history => parallel_output_history
      procedure :: output_proposal => parallel_output_proposal
 
   end type parallel
@@ -240,61 +239,6 @@ contains
     return 
   end function parallel_select_pair
 
-  !---------------------------------------------------------------------
-
-  subroutine parallel_output_history(self, filename, mode)
-    class(parallel), intent(in) :: self
-    character(*), intent(in) :: filename
-    character(*), intent(in) :: mode
-    integer :: i, ierr, io
-    type(mcmc) :: mc
-    integer :: icol, n_all, n_iter
-    double precision, allocatable :: hist_all(:,:), hist_all2(:,:)
-    character(50) :: fmt
-    !write(*,*)self%n_chain,  self%n_proc
-    n_all = self%n_chain * self%n_proc
-    mc = self%mc(1)
-    n_iter = mc%get_n_iter()
-    allocate(hist_all(n_iter, n_all), hist_all2(n_iter, n_all))
-
-    ! Gather information within the same node
-    do i = 1, self%n_chain
-       mc = self%mc(i)
-       if (mode == "l") then
-          hist_all(1:n_iter, i) = mc%get_likelihood_saved()
-       else if (mode == "t") then
-          hist_all(1:n_iter, i) = mc%get_temp_saved() 
-       end if
-    end do
-    
-    ! MPI gather
-    do i = 1, self%n_chain
-       icol = (i - 1) * self%n_proc + 1
-       call mpi_gather(hist_all(1:n_iter, i), n_iter, &
-            & MPI_DOUBLE_PRECISION, &
-            & hist_all2(1:n_iter, icol), n_iter, &
-            & MPI_DOUBLE_PRECISION, 0, MPI_COMM_WORLD, ierr)
-    end do
-    
-    ! Output
-    if (self%rank == 0) then
-       open(newunit = io, file = filename, status = "unknown", &
-            & iostat = ierr)
-       if (ierr /= 0) then
-          write(0,*)"ERROR: cannot create ", trim(filename)
-          call mpi_finalize(ierr)
-          stop
-       end if
-       do i = 1, n_iter
-          write(fmt, '("(",I0,"E16.4)")')n_all
-          write(io, trim(fmt))hist_all2(i, 1:n_all)
-       end do
-       close(io)
-    end if
-
-    return 
-  end subroutine parallel_output_history
-  
   !---------------------------------------------------------------------
 
   subroutine parallel_output_proposal(self, filename, label)

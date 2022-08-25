@@ -16,8 +16,6 @@ module cls_mcmc
      integer, allocatable :: n_accept(:)
      integer :: i_proposal_type
      double precision :: log_likelihood
-     double precision, allocatable :: likelihood_saved(:)
-     double precision, allocatable :: temp_saved(:)
      double precision :: temp = 1.d0
      logical :: is_accepted
 
@@ -30,8 +28,6 @@ module cls_mcmc
      procedure :: set_temp => mcmc_set_temp
      procedure :: get_temp => mcmc_get_temp
      procedure :: get_log_likelihood => mcmc_get_log_likelihood
-     procedure :: get_likelihood_saved => mcmc_get_likelihood_saved
-     procedure :: get_temp_saved => mcmc_get_temp_saved
      procedure :: get_n_propose => mcmc_get_n_propose
      procedure :: get_n_accept => mcmc_get_n_accept
      procedure :: get_n_iter => mcmc_get_n_iter
@@ -197,13 +193,6 @@ contains
     ! Adds iteration counter
     self%i_iter = self%i_iter + 1
 
-    ! Save models etc.
-    !if (self%diagnostic_mode) then
-    !   self%likelihood_saved(self%i_iter) = self%log_likelihood
-    !   self%k_saved(self%i_iter) = self%tm%get_k()
-    !   self%temp_saved(self%i_iter) = self%temp
-    !end if
-    
 
     return 
   end subroutine mcmc_judge_model
@@ -249,28 +238,6 @@ contains
     
     return 
   end function mcmc_get_log_likelihood
-  
-  !---------------------------------------------------------------------
-
-  function mcmc_get_likelihood_saved(self) result(l)
-    class(mcmc), intent(in) :: self
-    double precision :: l(self%n_iter)
-    
-    l(:) = self%likelihood_saved(:)
-    
-    return 
-  end function mcmc_get_likelihood_saved
-    
-  !---------------------------------------------------------------------
-  
-  function mcmc_get_temp_saved(self) result(t)
-    class(mcmc), intent(in) :: self
-    double precision :: t(self%n_iter)
-    
-    t(:) = self%temp_saved(:)
-    
-    return 
-  end function mcmc_get_temp_saved
   
   !---------------------------------------------------------------------
 
@@ -359,5 +326,6 @@ contains
   end function mcmc_write_out_qs
 
   !---------------------------------------------------------------------
+
   
 end module cls_mcmc

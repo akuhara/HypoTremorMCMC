@@ -22,11 +22,11 @@ program main
   
   character(line_max) :: param_file, win_id_file
   character(line_max) :: hypo_file, t_corr_file, vs_file
-  character(line_max) :: qs_file, a_corr_file
+  character(line_max) :: qs_file, a_corr_file, likelihood_file
   logical :: verb, prior_ok
   integer, allocatable :: win_id(:)
   integer :: i, j, io, id, n_events, io_hypo, io_t_corr, io_vs
-  integer :: io_qs, io_a_corr
+  integer :: io_qs, io_a_corr, io_likelihood
   double precision, allocatable :: x_mu(:), y_mu(:)
   double precision :: dummy
   double precision :: temp, log_prior_ratio, log_likelihood
@@ -209,6 +209,7 @@ program main
   write(vs_file, '(A,I2.2,A)')"vs.", rank, ".out"
   write(a_corr_file, '(A,I2.2,A)')"a_corr.", rank, ".out"
   write(qs_file, '(A,I2.2,A)')"qs.", rank, ".out"
+  write(likelihood_file, '(A,I2.2,A)')"likelihood", rank, ".out"
   open(newunit=io_hypo, file=hypo_file, status="replace", &
        & access="stream", form="unformatted")
   open(newunit=io_t_corr, file=t_corr_file, status="replace", &
@@ -218,6 +219,8 @@ program main
   open(newunit=io_a_corr, file=a_corr_file, status="replace", &
        & access="stream", form="unformatted")
   open(newunit=io_qs, file=qs_file, status="replace", &
+       & access="stream", form="unformatted")
+  open(newunit=io_likelihood, file=likelihood_file, status="replace", &
        & access="stream", form="unformatted")
 !  open(newunit=io_vs, file=vs_file, status="replace", form="formatted")
   print *, "start MCMC"
@@ -241,16 +244,19 @@ program main
              & log_likelihood, log_prior_ratio, prior_ok)
         call pt%set_mc(j, mc)
 
-        if (verb .and. j== 1) call mc%one_step_summary()
+        if (verb .and. j== 1 .and. mod(i,1000) == 0) call mc%one_step_summary()
         
         ! Recording
-        if (mc%get_temp() < 1.d0 + eps .and. i > para%get_n_burn() &
-             & .and. mod(i, para%get_n_interval()) == 1) then
-           write(io_vs)i,  mc%write_out_vs()
-           write(io_hypo)i, mc%write_out_hypo()
-           write(io_t_corr)i, mc%write_out_t_corr()
-           write(io_qs)i,  mc%write_out_qs()
-           write(io_a_corr)i, mc%write_out_a_corr()
+        if (mc%get_temp() < 1.d0 + eps .and. &
+             & mod(i, para%get_n_interval()) == 1) then
+           if (i > para%get_n_burn()) then
+              write(io_vs)i,  mc%write_out_vs()
+              write(io_hypo)i, mc%write_out_hypo()
+              write(io_t_corr)i, mc%write_out_t_corr()
+              write(io_qs)i,  mc%write_out_qs()
+              write(io_a_corr)i, mc%write_out_a_corr()
+           end if
+           write(io_likelihood)i, mc%get_log_likelihood()
         end if
      end do
      ! Swap Temp.
