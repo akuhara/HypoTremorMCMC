@@ -93,11 +93,13 @@ program main
   ! forward
   fwd = forward(&
        & n_sta          = para%get_n_stations(), &
-       & n_events       = n_events, &
-       & sta_x          = para%get_sta_x(), &
-       & sta_y          = para%get_sta_y(), &
-       & sta_z          = para%get_sta_z(), &
-       & obs            = obs               &
+       & n_events       = n_events,              &
+       & sta_x          = para%get_sta_x(),      &
+       & sta_y          = para%get_sta_y(),      &
+       & sta_z          = para%get_sta_z(),      &
+       & obs            = obs,                   &
+       & amp_used       = para%get_amp_used(),   &
+       & time_used      = para%get_time_used()   &
        & )
        
 

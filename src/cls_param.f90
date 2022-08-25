@@ -66,9 +66,6 @@ module cls_param
      double precision :: alpha
      integer :: n_pair_thred
 
-     ! Use median for optimization
-     logical :: use_median
-
      ! MCMC
      integer :: n_iter, n_burn, n_interval
      integer :: n_chains
@@ -89,6 +86,9 @@ module cls_param
      logical :: solve_t_corr
      logical :: solve_qs
      logical :: solve_a_corr
+
+     logical :: amp_used
+     logical :: time_used
 
      ! Verbose
      logical :: verb = .false.
@@ -146,6 +146,8 @@ module cls_param
      procedure :: get_solve_t_corr => param_get_solve_t_corr
      procedure :: get_solve_qs => param_get_solve_qs
      procedure :: get_solve_a_corr => param_get_solve_a_corr
+     procedure :: get_amp_used => param_get_amp_used
+     procedure :: get_time_used => param_get_time_used
      
   end type param
   
@@ -431,6 +433,10 @@ contains
        read(val,*) self%solve_t_corr
     else if (name == "solve_a_corr") then
        read(val,*) self%solve_a_corr
+    else if (name == "amp_used") then
+       read(val,*) self%amp_used
+    else if (name == "time_used") then
+       read(val,*) self%time_used
     else
        if (self%verb) then
           write(0,*)"ERROR: Invalid parameter name"
@@ -984,6 +990,28 @@ contains
 
     return 
   end function param_get_solve_a_corr
+  
+  !---------------------------------------------------------------------
+  
+  logical function param_get_amp_used(self) &
+       & result(amp_used)
+    class(param), intent(in) :: self
+    
+    amp_used = self%amp_used
+
+    return 
+  end function param_get_amp_used
+  
+  !---------------------------------------------------------------------
+
+  logical function param_get_time_used(self) &
+       & result(time_used)
+    class(param), intent(in) :: self
+    
+    time_used = self%time_used
+
+    return 
+  end function param_get_time_used
   
   !---------------------------------------------------------------------
 

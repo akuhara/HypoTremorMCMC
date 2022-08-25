@@ -15,6 +15,10 @@ module cls_forward
      double precision, allocatable :: log_t_stdv(:,:)
      double precision, allocatable :: log_a_stdv(:,:)
      
+     logical :: amp_used
+     logical :: time_used
+
+     
    contains
      procedure :: calc_log_likelihood => forward_calc_log_likelihood
      procedure :: calc_travel_time => forward_calc_travel_time
@@ -30,10 +34,11 @@ contains
   !------------------------------------------------------------------------------
 
   type(forward) function init_forward(n_sta, n_events, sta_x, sta_y, sta_z, &
-       & obs) result(self)
+       & obs, amp_used, time_used) result(self)
     integer, intent(in) :: n_sta, n_events
     double precision, intent(in) :: sta_x(:), sta_y(:), sta_z(:)
     type(obs_data), intent(in) :: obs
+    logical, intent(in) :: amp_used, time_used
     
     integer :: i, j, k
 
@@ -46,6 +51,9 @@ contains
     self%sta_z = sta_z
     
     self%n_events = n_events
+    
+    self%amp_used = amp_used
+    self%time_used = time_used
     
     allocate(self%t_obs(self%n_sta, self%n_events))
     allocate(self%t_stdv(self%n_sta, self%n_events))
@@ -179,24 +187,31 @@ contains
     double precision :: a_syn(self%n_sta, self%n_events)
     integer :: i, j
     
-    call self%calc_travel_time(hypo, t_corr, vs, t_syn)
-    call self%calc_amp(hypo, a_corr, qs, vs, a_syn)
-    
     log_likelihood = 0.d0
-    
-    do i = 1, self%n_events
-       do j = 1, self%n_sta 
-          log_likelihood = log_likelihood - &
-               & (self%t_obs(j, i) - t_syn(j, i))**2 / &
-               & (2.d0 * self%t_stdv(j, i)**2) - log_2pi_half &
-               & -self%log_t_stdv(j,i)
-          log_likelihood = log_likelihood - &
-               & (self%a_obs(j, i) - a_syn(j, i))**2 / &
-               & (2.d0 * self%a_stdv(j, i)**2) - log_2pi_half &
-               & -self%log_a_stdv(j,i)
-       end do
-    end do
 
+    if (self%time_used) then
+       call self%calc_travel_time(hypo, t_corr, vs, t_syn)
+       do i = 1, self%n_events
+          do j = 1, self%n_sta 
+             log_likelihood = log_likelihood - &
+                  & (self%t_obs(j, i) - t_syn(j, i))**2 / &
+                  & (2.d0 * self%t_stdv(j, i)**2) - log_2pi_half &
+                  & -self%log_t_stdv(j,i)
+          end do
+       end do
+    end if
+    if (self%amp_used) then
+       call self%calc_amp(hypo, a_corr, qs, vs, a_syn)
+       do i = 1, self%n_events
+          do j = 1, self%n_sta 
+             log_likelihood = log_likelihood - &
+                  & (self%a_obs(j, i) - a_syn(j, i))**2 / &
+                  & (2.d0 * self%a_stdv(j, i)**2) - log_2pi_half &
+                  & -self%log_a_stdv(j,i)
+          end do
+       end do
+    end if
+    
     return 
   end subroutine forward_calc_log_likelihood
 
