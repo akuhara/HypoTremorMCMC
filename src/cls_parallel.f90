@@ -170,7 +170,7 @@ contains
           rpack = pack_mc_info(temp=temp2, likelihood=-999.d0)
        end if
        call mpi_send(rpack, 2, MPI_DOUBLE_PRECISION, rank2, 2222, &
-            & MPI_COMM_WORLD, status, ierr)
+            & MPI_COMM_WORLD, ierr)
        if (ierr /= MPI_SUCCESS) then
           write(0,*)"ERROR: while MPI_SEND rpack 1"
           call mpi_finalize(ierr)
@@ -194,7 +194,7 @@ contains
        l2    = mc2%get_log_likelihood()
        rpack = pack_mc_info(temp=temp2, likelihood=l2)
        call mpi_send(rpack, 2, MPI_DOUBLE_PRECISION, rank1, 1111, &
-            & MPI_COMM_WORLD, status, ierr)
+            & MPI_COMM_WORLD, ierr)
        if (ierr /= MPI_SUCCESS) then
           write(0,*)"ERROR: while MPI_SEND rpack 2"
           call mpi_finalize(ierr)
