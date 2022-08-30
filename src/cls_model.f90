@@ -145,7 +145,7 @@ contains
        if (self%prior_type(i) == 0) then
           self%x(i) = self%mu(i) + rand_g() * self%sigma(i)
        else if (self%prior_type(i) == 1) then
-          self%x(i) = rand_r() * self%sigma(i)
+          self%x(i) = self%mu(i) + rand_r() * self%sigma(i)
        else
           write(0,*) "unsupported prior type : prior_type = ", &
                & self%prior_type(i)

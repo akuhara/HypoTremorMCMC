@@ -155,8 +155,8 @@ program main
      do i = 1, n_events
         call hypo%set_prior(i=3*i-2, mu=x_mu(i), sigma=para%get_prior_width_xy())
         call hypo%set_prior(i=3*i-1, mu=y_mu(i), sigma=para%get_prior_width_xy())
-        call hypo%set_prior(i=3*i  , mu=0.d0,  sigma=para%get_prior_z(), &
-             & prior_type=1)
+        call hypo%set_prior(i=3*i  , mu=para%get_prior_z(),  &
+             & sigma=para%get_prior_width_z(), prior_type=1)
         call hypo%set_perturb(i=3*i-2, step_size=para%get_step_size_xy())
         call hypo%set_perturb(i=3*i-1, step_size=para%get_step_size_xy())
         call hypo%set_perturb(i=3*i  , step_size=para%get_step_size_z())
