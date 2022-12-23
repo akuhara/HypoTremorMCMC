@@ -75,7 +75,7 @@ contains
     class(obs_data), intent(inout) :: self
     integer :: i, io, ierr, j, k
     character(line_max) :: obs_file
-    double precision :: dummy1, dummy2
+    double precision :: dummy1, dummy2, dummy3
 
     if (self%verb) then
        print *, "<< Reading obs files>>"
@@ -89,7 +89,7 @@ contains
        end if
 
        do j = 1, self%n_sta
-          read(io,*) dummy1, dummy2, self%t_obs(j,i), self%t_stdv(j,i), &
+          read(io,*) dummy1, dummy2, dummy3, self%t_obs(j,i), self%t_stdv(j,i), &
                & self%a_obs(j,i), self%a_stdv(j,i)
           if (i == 1 .and. self%verb) then
              print *, "T=", self%t_obs(j, i), "T_stdv=", self%t_stdv(j,i)

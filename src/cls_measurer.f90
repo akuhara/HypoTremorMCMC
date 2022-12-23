@@ -22,8 +22,9 @@ module cls_measurer
      double precision :: t_win
      double precision :: t_step
      character(line_max), allocatable :: station_names(:)
-     double precision, allocatable :: sta_y(:)
      double precision, allocatable :: sta_x(:)
+     double precision, allocatable :: sta_y(:)
+     double precision, allocatable :: sta_z(:)
      
      character(line_max), allocatable :: pair(:,:)
      logical :: verb
@@ -55,9 +56,9 @@ contains
   !-------------------------------------------------------------------
   
   type(measurer) function init_measurer(station_names, sta_x, sta_y, &
-       & t_win, t_step, n_pair_thred, verb) result(self)
+       & sta_z, t_win, t_step, n_pair_thred, verb) result(self)
     character(line_max), intent(in) :: station_names(:)
-    double precision, intent(in) :: sta_x(:), sta_y(:)
+    double precision, intent(in) :: sta_x(:), sta_y(:), sta_z(:)
     double precision, intent(in) :: t_win, t_step
     integer, intent(in) :: n_pair_thred
     logical, intent(in) :: verb
@@ -67,9 +68,11 @@ contains
     allocate(self%station_names(self%n_sta))
     allocate(self%sta_x(self%n_sta))
     allocate(self%sta_y(self%n_sta))
+    allocate(self%sta_z(self%n_sta))
     self%station_names = station_names
     self%sta_x = sta_x
     self%sta_y = sta_y
+    self%sta_z = sta_z
     self%n_pair = self%n_sta * (self%n_sta - 1) / 2
     self%verb = verb
     self%t_win = t_win
@@ -293,7 +296,7 @@ contains
              read(io2, rec=2*j)tmp(j-j1+1, ista)
           end do
           close(io2)
-          tmp(:,ista) = tmp(:,ista) - sum(tmp(:,ista))/self%n
+          !tmp(:,ista) = tmp(:,ista) - sum(tmp(:,ista))/self%n ! Mean subtract
           fac = max(-minval(tmp(:,ista)),maxval(tmp(:,ista)))
           do j = 1, self%n
              write(io,*)(j - 1) * self%dt, tmp(j,ista) / fac + ista
@@ -342,7 +345,8 @@ contains
        open(newunit=io, file=time_file, form="formatted", status="replace", &
             & iostat=ierr)
        do ista = 1, self%n_sta
-          write(io, *) self%sta_x(ista), self%sta_y(ista), t(ista), t_stdv(ista), &
+          write(io, *) self%sta_x(ista), self%sta_y(ista), self%sta_z(ista), &
+               & t(ista), t_stdv(ista), &
                & amp(ista), amp_stdv(ista)
        end do
        close(io)

@@ -37,6 +37,7 @@ program main
        & station_names = para%get_stations(), & 
        & sta_x         = para%get_sta_x(), &
        & sta_y         = para%get_sta_y(), &
+       & sta_z         = para%get_sta_z(), &
        & t_win         = para%get_t_win_corr(), &
        & t_step        = para%get_t_step_corr(), &
        & n_pair_thred  = para%get_n_pair_thred(), &
@@ -47,7 +48,5 @@ program main
   call mpi_barrier(MPI_COMM_WORLD, ierr)
   call mpi_finalize(ierr)
   
-
-
   stop
 end program main

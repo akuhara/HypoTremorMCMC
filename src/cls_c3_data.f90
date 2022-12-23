@@ -110,9 +110,8 @@ contains
     real :: delta_4, tmp_4
     double precision, allocatable :: tmp(:, :)
     integer :: n
-
-    n = self%n_cmps
     
+    n = self%n_cmps
     ! Open file
     do i = 1, n
        write(*,'(A,1X,A,1X,A)') "<< Reading ", trim(files(i)), ">>"
@@ -124,19 +123,22 @@ contains
        end if
     end do
     
-    ! Read headers
     do i = 1, n
+       ! Read headers
        ! Get dt
        read(io(i), rec=1) delta_4
        if (.not. allocated(self%data)) then
           self%dt = dble(delta_4)
        else 
           if (abs(self%dt -dble(delta_4)) > 1.e-6) then
-             write(0,*)"ERROR: error in SAC header delta"
+             write(0,'(3a)')"ERROR: error in SAC header delta (in ", &
+                  & trim(files(i)), ")"
              stop
           end if
        end if
-       
+    end do
+    
+    do i = 1, n
        ! Get n_smp
        read(io(i), rec=80) npts
        if (.not. allocated(self%data)) then
@@ -153,23 +155,23 @@ contains
        else
           if (prev_npts /= npts) then
              write(0,*)"ERROR: invalid npts"
-             stop
           end if
        end if
     end do
-
-    ! Read data
+       
     do i = 1, n
+       ! Read data
        do j = 1, npts 
           read(io(i), rec=158+j) tmp_4
           self%data(self%n_smp+j, i) = dble(tmp_4)
        end do
     end do
-    self%n_smp = self%n_smp + npts
-    
+
     do i = 1, n
        close(io(i))
     end do
+    
+    self%n_smp = self%n_smp + npts
     
     
     return 
