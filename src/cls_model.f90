@@ -181,7 +181,8 @@ contains
           prior_ok = .false. 
        else
           log_prior_ratio = &
-               & log_prior_ratio + log(x_new) - log(x_old) 
+               & log_prior_ratio + log(x_new - self%mu(i)) &
+               & - log(x_old - self%mu(i)) 
        end if
     end if
 
