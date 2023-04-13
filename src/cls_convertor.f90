@@ -93,15 +93,15 @@ contains
     integer :: i_start, i_end
     logical :: first_flag, last_flag
     logical, parameter :: debug = .true.
+    character(line_max) :: debug_raw_file
     
 
     
     ! Read the ealiest time series
     ! Time increment (delta) is read from SAC hedaer here and is stored in
     ! c3%dt 
-    self%c3 = c3_data(files=self%filenames(1, 1:self%n_cmps)) 
-
     self%i_read_file = 1 ! Number of files already read
+    self%c3 = c3_data(files=self%filenames(1, 1:self%n_cmps)) 
     
     ! Get time incremnt  
     self%dt = self%c3%get_dt() ! From SAC header
@@ -148,18 +148,21 @@ contains
     write(*,*)self%filenames
     first_flag = .true.
     last_flag  = .false.
-    if (debug) open(newunit=io, file="windows.txt", status="replace")
-    
+    if (debug) then
+       write(debug_raw_file,'(a,a)') trim(self%station_name) // '.debug'
+       open(newunit=io, file=debug_raw_file, status="replace")
+    end if
     processing: do 
 
        ! << Append data, if necessary >>
        if (self%c3%get_n_smp() < self%n) then
           read_file: do 
              ! Read new SAC files
-             if (self%i_read_file + 1 > size(self%filenames(:,1))) exit read_file
-             call self%c3%enqueue_from_files(&
-                  & self%filenames(self%i_read_file + 1,:))
              self%i_read_file = self%i_read_file + 1
+             if (self%i_read_file > size(self%filenames(:,1))) exit read_file
+             call self%c3%enqueue_from_files(&
+                  & self%filenames(self%i_read_file,:))
+
              if (self%c3%get_n_smp() >= self%n) exit read_file
           end do read_file
        end if
@@ -174,46 +177,56 @@ contains
        
        
        ! << Processing >> 
-       if (.not. last_flag) then
-
-          ! Dequeue data
-          if (.not. first_flag .and. .not. last_flag) then
-             
-             ! * Get half and slide
-             tmp(1:n2,1:self%n_cmps) = tmp(n2+1:self%n,1:self%n_cmps)
-             tmp(n2+1:self%n,1:self%n_cmps) = self%c3%dequeue_data(n2)
-          else if (first_flag) then
-             
-             ! * Initial dequeue
-             tmp(1:self%n,1:self%n_cmps) = self%c3%dequeue_data(self%n)
-
-          else
-             ! This block seems not necessary (2023/4/13)
-             ! * Last dequeue
-             tmp(1:n2,1:self%n_cmps) = tmp(n2+1:self%n,1:self%n_cmps)
-             tmp(n2+1:n_len,1:self%n_cmps) = self%c3%dequeue_data(n_len-n2)
-          end if
+       !if (.not. last_flag) then
+       
+       ! Dequeue data
+       if (.not. first_flag .and. .not. last_flag) then
           
+          ! * Get half and slide
+          tmp(1:n2,1:self%n_cmps) = tmp(n2+1:self%n,1:self%n_cmps)
+          tmp(n2+1:self%n,1:self%n_cmps) = self%c3%dequeue_data(n2)
+       else if (first_flag) then
           
-          ! Main signal processing
-          processed(1:n_len, 1:self%n_cmps) = tmp(1:n_len, 1:self%n_cmps)
-          do i_cmp = 1, self%n_cmps
-             processed(1:n_len, i_cmp) = &
-                  & self%detrend(n_len, processed(1:n_len,i_cmp))
-             processed(1:n_len, i_cmp) = &
-                  & apply_taper(n_len, processed(1:n_len,i_cmp))
-             processed(1:n_len, i_cmp) = &
-                  & self%envelope(n_len, processed(1:n_len, i_cmp))
-             processed(1:n_len, i_cmp) = &
-                  & self%rectangle_smoothing(n_len, processed(1:n_len, i_cmp), &
-                  & int(1.5d0 / self%dt)) ! 2.5
-             processed(1:n_len, i_cmp) = &
-                  & self%rectangle_smoothing(n_len, processed(1:n_len, i_cmp), &
-                  & int(1.5d0 / self%dt))
-          end do
-          merged(1:n_len, 1) = self%merge_components(n_len, self%n_cmps, &
-               & processed(1:n_len, 1:self%n_cmps))
+          ! * Initial dequeue
+          tmp(1:self%n,1:self%n_cmps) = self%c3%dequeue_data(self%n)
+          
+       else
+          ! This block seems not necessary (2023/4/13)
+          ! * Last dequeue
+          tmp(1:n2,1:self%n_cmps) = tmp(n2+1:self%n,1:self%n_cmps)
+          tmp(n2+1:n_len,1:self%n_cmps) = self%c3%dequeue_data(n_len-n2)
        end if
+       
+       
+       ! Main signal processing
+       processed(1:n_len, 1:self%n_cmps) = tmp(1:n_len, 1:self%n_cmps)
+
+       do i_cmp = 1, self%n_cmps
+          processed(1:n_len, i_cmp) = &
+               & self%detrend(n_len, processed(1:n_len,i_cmp))
+          processed(1:n_len, i_cmp) = &
+               & apply_taper(n_len, processed(1:n_len,i_cmp))
+          processed(1:n_len, i_cmp) = &
+               & self%envelope(n_len, processed(1:n_len, i_cmp))
+          processed(1:n_len, i_cmp) = &
+               & self%rectangle_smoothing(n_len, processed(1:n_len, i_cmp), &
+               & int(1.5d0 / self%dt)) ! 2.5
+          processed(1:n_len, i_cmp) = &
+               & self%rectangle_smoothing(n_len, processed(1:n_len, i_cmp), &
+               & int(1.5d0 / self%dt))
+       end do
+       if (debug) then
+          do j = 1, n_len
+             write(io,*)(it + j) * self%dt, tmp(j, 1), processed(j, 1)
+          end do
+          it = it + n2
+          write(io,*)
+          write(io,*)
+       end if
+
+       merged(1:n_len, 1) = self%merge_components(n_len, self%n_cmps, &
+            & processed(1:n_len, 1:self%n_cmps))
+       !end if
        
        ! << Make output >> ! This section has an issue of expanding memory size
        
@@ -232,28 +245,18 @@ contains
        if (n_fac_mod == n_fac) then
           n_fac_mod = 0
        end if
-
-       ! << Debug output >>
-       if (debug)  then
-          block
-            double precision :: amp_fac = 4000.d0
-            do j = 1, self%n
-               write(io,*)(it + j) * self%dt, tmp(j, 1) / amp_fac + irow
-            end do
-            write(io,*)
-            !do j = 1, self%n
-            !   write(io,*)(it + j) * self%dt, merged(j, 1) / amp_fac + irow
-            !end do
-            it = it + n2
-            irow = irow + 1
-            write(io,*)
-          end block
-       end if
        
+       if (first_flag) then
+          first_flag = .false.
+       end if
+
+
        if (last_flag) then
           exit processing
        end if
+       
     end do processing
+    
     if (debug) close(io)
     
     ! Decimate
