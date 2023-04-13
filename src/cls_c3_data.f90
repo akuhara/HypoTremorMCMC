@@ -87,6 +87,8 @@ contains
     end if
     if (present(files)) then
        self%n_cmps = size(files)
+       
+       ! Read sac files
        call self%read_sac(files)
        return 
     end if
