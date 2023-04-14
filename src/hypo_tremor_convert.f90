@@ -4,7 +4,7 @@ program hypo_tremor_mcmc
   use cls_line_text, only: line_max
   use cls_convertor, only: convertor
   use cls_c3_data, only: c3_data
-  use cls_detector, only: detector
+  !use cls_detector, only: detector
   implicit none 
   integer :: n_args, ierr, rank, n_procs, id_start, id_end, i_sta
   integer, allocatable :: rank_in_charge(:)
@@ -35,7 +35,7 @@ program hypo_tremor_mcmc
 
   
   ! Read parameter file
-  para = param(param_file, verb=verb, from_where="detect")
+  para = param(param_file, verb=verb)
   call mpi_barrier(MPI_COMM_WORLD, ierr)
 
   ! Get task ID
@@ -60,37 +60,37 @@ program hypo_tremor_mcmc
   end do
   
   ! Gather results of all processes
-  block 
-    integer :: i_sta, ierr, n_smp, n_cmps
-    double precision :: dt
-    double precision, allocatable :: data(:,:)
-
-    do i_sta = 1, para%get_n_stations()
-       if (rank == rank_in_charge(i_sta)) then
-          n_smp  = env(i_sta)%get_n_smp()
-          n_cmps = env(i_sta)%get_n_cmps()
-          dt     = env(i_sta)%get_dt()
-          data   = env(i_sta)%get_data()
-       end if
-       call mpi_bcast(n_smp, 1, MPI_INTEGER4, rank_in_charge(i_sta), &
-            & MPI_COMM_WORLD, ierr)
-       call mpi_bcast(n_cmps, 1, MPI_INTEGER4, rank_in_charge(i_sta), &
-            & MPI_COMM_WORLD, ierr)
-       call mpi_bcast(dt, 1, MPI_DOUBLE_PRECISION, rank_in_charge(i_sta), &
-            & MPI_COMM_WORLD, ierr)
-       if (rank /= rank_in_charge(i_sta)) then
-          allocate(data(n_smp, n_cmps))
-          env(i_sta) = c3_data(dt=dt, n_cmps=n_cmps)
-       end if
-       call mpi_bcast(data, n_smp * n_cmps, MPI_DOUBLE_PRECISION, &
-            & rank_in_charge(i_sta), MPI_COMM_WORLD, ierr)
-       if (rank /= rank_in_charge(i_sta)) then
-          call env(i_sta)%enqueue_data(data)
-       end if
-       deallocate(data)
-    end do
-    
-  end block
+  !block 
+  !  integer :: i_sta, ierr, n_smp, n_cmps
+  !  double precision :: dt
+  !  double precision, allocatable :: data(:,:)
+  !
+  !  do i_sta = 1, para%get_n_stations()
+  !     if (rank == rank_in_charge(i_sta)) then
+  !        n_smp  = env(i_sta)%get_n_smp()
+  !        n_cmps = env(i_sta)%get_n_cmps()
+  !        dt     = env(i_sta)%get_dt()
+  !        data   = env(i_sta)%get_data()
+  !     end if
+  !     call mpi_bcast(n_smp, 1, MPI_INTEGER4, rank_in_charge(i_sta), &
+  !          & MPI_COMM_WORLD, ierr)
+  !     call mpi_bcast(n_cmps, 1, MPI_INTEGER4, rank_in_charge(i_sta), &
+  !          & MPI_COMM_WORLD, ierr)
+  !     call mpi_bcast(dt, 1, MPI_DOUBLE_PRECISION, rank_in_charge(i_sta), &
+  !          & MPI_COMM_WORLD, ierr)
+  !     if (rank /= rank_in_charge(i_sta)) then
+  !        allocate(data(n_smp, n_cmps))
+  !        env(i_sta) = c3_data(dt=dt, n_cmps=n_cmps)
+  !     end if
+  !     call mpi_bcast(data, n_smp * n_cmps, MPI_DOUBLE_PRECISION, &
+  !          & rank_in_charge(i_sta), MPI_COMM_WORLD, ierr)
+  !     if (rank /= rank_in_charge(i_sta)) then
+  !        call env(i_sta)%enqueue_data(data)
+  !     end if
+  !     deallocate(data)
+  !  end do
+  !  
+  !end block
   
 
   ! Detect

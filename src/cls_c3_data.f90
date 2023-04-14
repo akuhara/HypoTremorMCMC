@@ -46,7 +46,7 @@ module cls_c3_data
      double precision              :: dt
      double precision, allocatable :: data(:,:) ! size(n_smp, n_cmps)
 
-     double precision              :: fac_memory_alloc = 4.0d0
+     double precision              :: fac_memory_alloc = 2.0d0
     
    contains
      procedure :: read_sac     => c3_data_read_sac
@@ -87,6 +87,8 @@ contains
     end if
     if (present(files)) then
        self%n_cmps = size(files)
+       
+       ! Read sac files
        call self%read_sac(files)
        return 
     end if
