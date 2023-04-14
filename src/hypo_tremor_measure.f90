@@ -29,7 +29,7 @@ program main
   call get_command_argument(1, param_file)
 
   ! Read parameter file
-  para = param(param_file, verb=verb)
+  para = param(param_file, verb=verb, from_where="measure")
   call mpi_barrier(MPI_COMM_WORLD, ierr)
 
   

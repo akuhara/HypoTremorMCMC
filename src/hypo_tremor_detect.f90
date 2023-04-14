@@ -35,7 +35,7 @@ program hypo_tremor_mcmc
 
   
   ! Read parameter file
-  para = param(param_file, verb=verb)
+  para = param(param_file, verb=verb, from_where="detect")
   call mpi_barrier(MPI_COMM_WORLD, ierr)
 
   ! Get task ID

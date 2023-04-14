@@ -159,10 +159,11 @@ contains
   
   !---------------------------------------------------------------------
   
-  type(param) function init_param(param_file, verb) result(self)
+  type(param) function init_param(param_file, verb, from_where) result(self)
     character(len=*), intent(in) :: param_file
     logical, intent(in), optional :: verb
-
+    character(*), intent(in) :: from_where
+    
     if (present(verb)) then
        self%verb = verb
     end if
@@ -177,29 +178,36 @@ contains
     if (self%verb) then
        write(*,*)
     end if
-
-    ! Read component file
-    if (self%verb) &
-         & write(*,'(3A)')"<< Reading ", trim(self%comp_file), " >>"
-    call self%read_comp_file()
-    if (self%verb) write(*,*)
-
-    ! Read station file
-    if (self%verb) &
-         & write(*,'(3A)')"<< Reading ", trim(self%station_file), " >>"
-    call self%read_station_file()
-    if (self%verb) write(*,*)
-
-    ! Read data ID file
-    if (self%verb) &
-         & write(*,'(3A)')"<< Reading ", trim(self%data_id_file), " >>"
-    call self%read_data_id_file()
-    if (self%verb) write(*,*)
-
     
-    ! Make filenames
-    call self%make_filenames()
-    !write(*,*)self%filenames
+    if (from_where == "detect") then
+       ! Read component file
+       if (self%verb) &
+            & write(*,'(3A)')"<< Reading ", trim(self%comp_file), " >>"
+       call self%read_comp_file()
+       if (self%verb) write(*,*)
+    end if
+
+    if (from_where == "detect" .or. from_where == "measure" &
+         &                     .or. from_where == "mcmc") then
+       ! Read station file
+       if (self%verb) &
+            & write(*,'(3A)')"<< Reading ", trim(self%station_file), " >>"
+       call self%read_station_file()
+       if (self%verb) write(*,*)
+    end if
+
+    if (from_where == "detect") then
+       ! Read data ID file
+       if (self%verb) &
+            & write(*,'(3A)')"<< Reading ", trim(self%data_id_file), " >>"
+       call self%read_data_id_file()
+       if (self%verb) write(*,*)
+    end if
+
+    if (from_where == "detect") then
+       call self%make_filenames()
+    end if
+    
 
     return 
   end function init_param
