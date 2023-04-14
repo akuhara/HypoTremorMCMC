@@ -6,7 +6,7 @@
 FC     = mpif90
 FFLAGS = -pg -Wall -pedantic -fbounds-check -O0 -std=f2008 \
          -Wuninitialized -ffpe-trap=invalid,zero,overflow -fbacktrace \
-	 -fconvert=big-endian
+	 -fconvert=big-endian -g -fcheck=all
 
 # Example 2. GNU fortran for fast computation
 #FC     = mpif90

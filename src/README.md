@@ -13,5 +13,7 @@ determining the source locations tremor signals without clear phase onsets.  The
 
 ## hypo_tremor_detect
 
+This program read seismic records sotred in multiple SAC files 
+
 ## hypo_tremor_measure
 

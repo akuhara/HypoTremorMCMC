@@ -92,7 +92,7 @@ contains
     integer :: n2, n4, io, it, j, irow, i_cmp, n_len, n_fac, n_fac_mod
     integer :: i_start, i_end
     logical :: first_flag, last_flag
-    logical, parameter :: debug = .true.
+    logical, parameter :: debug = .false.
     character(line_max) :: debug_raw_file
     
 
