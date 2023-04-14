@@ -241,7 +241,7 @@ contains
           i_end   = self%n - n4
        else
           i_start = n4 + 1
-          i_end = n_len
+          i_end = n2 + n_last_read
        end if
        call self%c3_out%enqueue_data(merged(i_start+n_fac_mod:i_end:n_fac,:)) 
        n_fac_mod = n_fac - mod(i_end - i_start - n_fac_mod + 1, n_fac)
