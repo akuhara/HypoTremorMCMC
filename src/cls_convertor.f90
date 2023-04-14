@@ -90,6 +90,7 @@ contains
     class(convertor), intent(inout) :: self
     double precision, allocatable :: tmp(:, :), processed(:,:), merged(:, :)
     integer :: n2, n4, io, it, j, irow, i_cmp, n_len, n_fac, n_fac_mod
+    integer :: n_last_read
     integer :: i_start, i_end
     logical :: first_flag, last_flag
     logical, parameter :: debug = .false.
@@ -171,14 +172,17 @@ contains
        if (self%c3%get_n_smp() >= n2) then
           n_len = self%n
        else
+          !exit processing
           last_flag = .true.
-          n_len = n2 + self%c3%get_n_smp()
+          !n_len = n2 + self%c3%get_n_smp()
+          n_len = self%n
+          n_last_read = self%c3%get_n_smp()
+          write(*,*)"n_len=", n_len, self%n
        end if
        
        
        ! << Processing >> 
-       !if (.not. last_flag) then
-       
+      
        ! Dequeue data
        if (.not. first_flag .and. .not. last_flag) then
           
@@ -186,21 +190,20 @@ contains
           tmp(1:n2,1:self%n_cmps) = tmp(n2+1:self%n,1:self%n_cmps)
           tmp(n2+1:self%n,1:self%n_cmps) = self%c3%dequeue_data(n2)
        else if (first_flag) then
-          
           ! * Initial dequeue
           tmp(1:self%n,1:self%n_cmps) = self%c3%dequeue_data(self%n)
-          
        else
-          ! This block seems not necessary (2023/4/13)
           ! * Last dequeue
           tmp(1:n2,1:self%n_cmps) = tmp(n2+1:self%n,1:self%n_cmps)
-          tmp(n2+1:n_len,1:self%n_cmps) = self%c3%dequeue_data(n_len-n2)
+          tmp(n2+1:n2+n_last_read,1:self%n_cmps) &
+               & = self%c3%dequeue_data(n_last_read)
+          tmp(n2+n_last_read+1:self%n,1:self%n_cmps) = 0.d0
        end if
        
        
        ! Main signal processing
        processed(1:n_len, 1:self%n_cmps) = tmp(1:n_len, 1:self%n_cmps)
-
+       
        do i_cmp = 1, self%n_cmps
           processed(1:n_len, i_cmp) = &
                & self%detrend(n_len, processed(1:n_len,i_cmp))
@@ -223,10 +226,10 @@ contains
           write(io,*)
           write(io,*)
        end if
-
+       
        merged(1:n_len, 1) = self%merge_components(n_len, self%n_cmps, &
             & processed(1:n_len, 1:self%n_cmps))
-       !end if
+       
        
        ! << Make output >> ! This section has an issue of expanding memory size
        
