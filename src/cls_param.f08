@@ -179,7 +179,7 @@ contains
        write(*,*)
     end if
     
-    if (from_where == "detect") then
+    if (from_where == "optimize") then
        ! Read component file
        if (self%verb) &
             & write(*,'(3A)')"<< Reading ", trim(self%comp_file), " >>"
@@ -187,7 +187,7 @@ contains
        if (self%verb) write(*,*)
     end if
 
-    if (from_where == "detect" .or. from_where == "measure" &
+    if (from_where == "optimize" .or. from_where == "select" &
          &                     .or. from_where == "mcmc") then
        ! Read station file
        if (self%verb) &
@@ -196,7 +196,7 @@ contains
        if (self%verb) write(*,*)
     end if
 
-    if (from_where == "detect") then
+    if (from_where == "optimize") then
        ! Read data ID file
        if (self%verb) &
             & write(*,'(3A)')"<< Reading ", trim(self%data_id_file), " >>"
@@ -204,7 +204,7 @@ contains
        if (self%verb) write(*,*)
     end if
 
-    if (from_where == "detect") then
+    if (from_where == "optimize") then
        call self%make_filenames()
     end if
     

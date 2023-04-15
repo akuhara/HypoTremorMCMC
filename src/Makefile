@@ -43,19 +43,21 @@ OBJS_HYPO_TREMOR_OPTIMIZE = mod_mpi.o \
 		hypo_tremor_optimize.o cls_param.o cls_line_text.o \
 	 	cls_c3_data.o cls_convertor.o cls_detector.o \
                 mod_signal_process.o mod_sort.o cls_measurer.o
+OBJS_HYPO_TREMOR_SELECT = mod_mpi.o \
+                hypo_tremor_select.o cls_param.o cls_line_text.o
 OBJS_HYPO_TREMOR_MCMC = mod_mpi.o \
                 hypo_tremor_mcmc.o cls_param.o cls_line_text.o \
                 cls_model.o mod_random.o cls_obs_data.o \
                 cls_mcmc.o cls_parallel.o cls_forward.o
 
 
-TARGET = $(HYPO_TREMOR_OPTIMIZE) $(HYPO_TREMOR_MCMC)
+TARGET = $(HYPO_TREMOR_OPTIMIZE) $(HYPO_TREMOR_SELECT) $(HYPO_TREMOR_MCMC)
 .PHONY: all
 all: $(TARGET)
 
 hypo_tremor_optimize.o: mod_mpi.mod cls_param.mod cls_line_text.mod cls_convertor.mod \
                     cls_detector.mod cls_measurer.mod
-hypo_tremor_measure.o: mod_mpi.mod cls_param.mod cls_line_text.mod cls_measurer.mod 
+hypo_tremor_select.o: mod_mpi.mod cls_param.mod cls_line_text.mod 
 hypo_tremor_mcmc.o: mod_mpi.mod cls_model.mod cls_param.mod cls_line_text.mod \
                   cls_model.mod cls_obs_data.mod mod_random.mod cls_parallel.mod   \
 	           cls_forward.mod
@@ -71,6 +73,10 @@ cls_measurer.o: cls_line_text.mod mod_mpi.mod mod_signal_process.mod
 cls_forward.o: cls_model.mod cls_obs_data.mod
 
 $(HYPO_TREMOR_OPTIMIZE): $(OBJS_HYPO_TREMOR_OPTIMIZE)
+	@if [ ! -d $(BINDIR) ]; then mkdir $(BINDIR); fi
+	$(FC) $(FFLAGS) $(COV) $(FFTW) $(LAPACK) $^ -o $@  
+
+$(HYPO_TREMOR_SELECT): $(OBJS_HYPO_TREMOR_SELECT)
 	@if [ ! -d $(BINDIR) ]; then mkdir $(BINDIR); fi
 	$(FC) $(FFLAGS) $(COV) $(FFTW) $(LAPACK) $^ -o $@  
 
