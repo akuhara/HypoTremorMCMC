@@ -66,6 +66,10 @@ module cls_param
      double precision :: alpha
      integer :: n_pair_thred
 
+     ! Selection criteria 
+     double precision :: vs_min, vs_max
+     double precision :: b_min, b_max
+
      ! MCMC
      integer :: n_iter, n_burn, n_interval
      integer :: n_chains
@@ -119,6 +123,10 @@ module cls_param
      procedure :: get_t_step_corr => param_get_t_step_corr
      procedure :: get_n_pair_thred => param_get_n_pair_thred
      procedure :: get_alpha => param_get_alpha
+     procedure :: get_vs_min => param_get_vs_min
+     procedure :: get_vs_max => param_get_vs_max
+     procedure :: get_b_min => param_get_b_min
+     procedure :: get_b_max => param_get_b_max
      procedure :: get_n_iter => param_get_n_iter
      procedure :: get_n_burn => param_get_n_burn
      procedure :: get_n_interval => param_get_n_interval
@@ -387,6 +395,14 @@ contains
        read(val,*) self%n_pair_thred
     else if (name == "alpha") then
        read(val,*) self%alpha
+    else if (name == "vs_min") then
+       read(val,*) self%vs_min
+    else if (name == "vs_max") then
+       read(val,*) self%vs_max
+    else if (name == "b_min") then
+       read(val,*) self%b_min
+    else if (name == "b_max") then
+       read(val,*) self%b_max
     else if (name == "n_iter") then
        read(val,*) self%n_iter
     else if (name == "n_burn") then
@@ -705,6 +721,46 @@ contains
 
     return 
   end function param_get_alpha
+
+  !---------------------------------------------------------------------
+  
+  double precision function param_get_vs_min(self) result(vs_min)
+    class(param), intent(in) :: self
+    
+    vs_min = self%vs_min
+
+    return 
+  end function param_get_vs_min
+
+  !---------------------------------------------------------------------
+
+  double precision function param_get_vs_max(self) result(vs_max)
+    class(param), intent(in) :: self
+    
+    vs_max = self%vs_max
+
+    return 
+  end function param_get_vs_max
+
+  !---------------------------------------------------------------------
+
+  double precision function param_get_b_min(self) result(b_min)
+    class(param), intent(in) :: self
+    
+    b_min = self%b_min
+
+    return 
+  end function param_get_b_min
+
+  !---------------------------------------------------------------------
+
+  double precision function param_get_b_max(self) result(b_max)
+    class(param), intent(in) :: self
+    
+    b_max = self%b_max
+
+    return 
+  end function param_get_b_max
 
   !---------------------------------------------------------------------
 

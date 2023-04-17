@@ -341,7 +341,7 @@ contains
        
        close(io)
 
-       write(time_file,'(A,I5.5,A)')"rel_time.", id, ".dat"
+       write(time_file,'(A,I5.5,A)')"opt_data.", id, ".dat"
        open(newunit=io, file=time_file, form="formatted", status="replace", &
             & iostat=ierr)
        do ista = 1, self%n_sta

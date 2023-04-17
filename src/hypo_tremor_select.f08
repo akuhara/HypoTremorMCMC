@@ -1,10 +1,16 @@
 program main
   use mod_mpi
-  use param: only: param
+  use cls_param, only: param
   use cls_line_text, only: line_max
+  use cls_selector, only: selector
   implicit none   
+  integer :: i, i1, i2
   integer :: n_args, ierr, n_procs, rank, io, ios, n_win
+  integer, allocatable :: win_id(:)
+  double precision :: dummy
+  character(line_max) :: param_file
   type(param) :: para
+  type(selector) :: slct
   logical :: verb
   
   call mpi_init(ierr)
@@ -37,10 +43,32 @@ program main
   n_win = 0
   do 
      read(io, *, iostat=ios)
-     if (iostat /= 0) exit
+     if (ios /= 0) exit
      n_win = n_win + 1
   end do
+  
+  allocate(win_id(n_win))
+
   rewind(io)
+  do i = 1, n_win
+     read(io, *)win_id(i), dummy
+  end do
   close(io)
+
+  call get_mpi_task_id(n_win, i1, i2)
+
+  slct = selector(&
+       & win_id =win_id(i1:i2), &
+       & station_names = para%get_stations(), &
+       & sta_x = para%get_sta_x(), &
+       & sta_y = para%get_sta_y(), &
+       & sta_z = para%get_sta_z(), &
+       & vs_min = para%get_vs_min(), &
+       & vs_max = para%get_vs_max(), &
+       & b_min = para%get_b_min(), &
+       & b_max = para%get_b_max() &
+       & )
+
+  
   
 end program main
