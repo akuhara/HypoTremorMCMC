@@ -58,7 +58,6 @@ program main
   call get_mpi_task_id(n_win, i1, i2)
 
   slct = selector(&
-       & win_id =win_id(i1:i2), &
        & station_names = para%get_stations(), &
        & sta_x = para%get_sta_x(), &
        & sta_y = para%get_sta_y(), &
@@ -68,7 +67,12 @@ program main
        & b_min = para%get_b_min(), &
        & b_max = para%get_b_max() &
        & )
+  
+  do i = i1, i2
+     call slct%eval_wave_propagation(win_id(i))
+  end do
 
+  call mpi_finalize(ierr)
   
-  
+  stop
 end program main
