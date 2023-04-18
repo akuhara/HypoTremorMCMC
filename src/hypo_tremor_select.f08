@@ -110,7 +110,7 @@ double precision, allocatable :: vs_all(:), b_all(:), t0_all(:), a0_all(:)
              & vs_all(i) <= para%get_vs_max() .and. &
              & b_all(i)  >= para%get_b_min() .and. &
              & b_all(i)  <= para%get_b_max()) then
-           write(io3, *)i, dummy(i)
+           write(io3, *)win_id(i), dummy(i)
         end if
      end do
 
