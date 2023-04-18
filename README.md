@@ -1,6 +1,6 @@
 # HypoTremorMCMC
 
-__A Three-step Approach for Locationg Tectonic Tremors with Uncertainty Estimates__
+__Locationg Tectonic Tremors with Uncertainty Estimates__
 
 Copyright (C) 2023 __Takeshi Akuhara__[![ORCID](https://orcid.org/sites/default/files/images/orcid_16x16.png)](https://orcid.org/0000-0002-6129-8459)
 
@@ -40,12 +40,12 @@ To use the program, follow these steps:
 2. Run the three programs one by one:
 
 ```
-mpirun -np [process number] hypo_tremor_detect [parameter file]
-mpirun -np [process number] hypo_tremor_measure [parameter file]
+mpirun -np [process number] hypo_tremor_optimize [parameter file]
+mpirun -np [process number] hypo_tremor_select [parameter file]
 mpirun -np [process number] hypo_tremor_mcmc [parameter file]
 ```
 
-The above three programs (`hypo_tremor_detect`, `hypo_tremor_measure`, and `hypo_tremor_mcmc`) must be executed in this order because some necessary input files are created by the previous program. 
+The above three programs (`hypo_tremor_detect`, `hypo_tremor_select`, and `hypo_tremor_mcmc`) must be executed in this order because some necessary input files are created by the previous program. 
 
 
 ## Contributing

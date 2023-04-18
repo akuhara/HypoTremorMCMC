@@ -66,6 +66,13 @@ module cls_param
      double precision :: alpha
      integer :: n_pair_thred
 
+     ! Selection criteria 
+     double precision :: vs_min, vs_max
+     double precision :: b_min, b_max
+
+     ! Event assumed during quality control
+     double precision :: z_guess
+
      ! MCMC
      integer :: n_iter, n_burn, n_interval
      integer :: n_chains
@@ -119,6 +126,11 @@ module cls_param
      procedure :: get_t_step_corr => param_get_t_step_corr
      procedure :: get_n_pair_thred => param_get_n_pair_thred
      procedure :: get_alpha => param_get_alpha
+     procedure :: get_vs_min => param_get_vs_min
+     procedure :: get_vs_max => param_get_vs_max
+     procedure :: get_b_min => param_get_b_min
+     procedure :: get_b_max => param_get_b_max
+     procedure :: get_z_guess => param_get_z_guess
      procedure :: get_n_iter => param_get_n_iter
      procedure :: get_n_burn => param_get_n_burn
      procedure :: get_n_interval => param_get_n_interval
@@ -179,7 +191,7 @@ contains
        write(*,*)
     end if
     
-    if (from_where == "detect") then
+    if (from_where == "optimize") then
        ! Read component file
        if (self%verb) &
             & write(*,'(3A)')"<< Reading ", trim(self%comp_file), " >>"
@@ -187,7 +199,7 @@ contains
        if (self%verb) write(*,*)
     end if
 
-    if (from_where == "detect" .or. from_where == "measure" &
+    if (from_where == "optimize" .or. from_where == "select" &
          &                     .or. from_where == "mcmc") then
        ! Read station file
        if (self%verb) &
@@ -196,7 +208,7 @@ contains
        if (self%verb) write(*,*)
     end if
 
-    if (from_where == "detect") then
+    if (from_where == "optimize") then
        ! Read data ID file
        if (self%verb) &
             & write(*,'(3A)')"<< Reading ", trim(self%data_id_file), " >>"
@@ -204,7 +216,7 @@ contains
        if (self%verb) write(*,*)
     end if
 
-    if (from_where == "detect") then
+    if (from_where == "optimize") then
        call self%make_filenames()
     end if
     
@@ -387,6 +399,16 @@ contains
        read(val,*) self%n_pair_thred
     else if (name == "alpha") then
        read(val,*) self%alpha
+    else if (name == "vs_min") then
+       read(val,*) self%vs_min
+    else if (name == "vs_max") then
+       read(val,*) self%vs_max
+    else if (name == "b_min") then
+       read(val,*) self%b_min
+    else if (name == "b_max") then
+       read(val,*) self%b_max
+    else if (name == "z_guess") then
+       read(val,*) self%z_guess
     else if (name == "n_iter") then
        read(val,*) self%n_iter
     else if (name == "n_burn") then
@@ -705,6 +727,56 @@ contains
 
     return 
   end function param_get_alpha
+
+  !---------------------------------------------------------------------
+  
+  double precision function param_get_vs_min(self) result(vs_min)
+    class(param), intent(in) :: self
+    
+    vs_min = self%vs_min
+
+    return 
+  end function param_get_vs_min
+
+  !---------------------------------------------------------------------
+
+  double precision function param_get_vs_max(self) result(vs_max)
+    class(param), intent(in) :: self
+    
+    vs_max = self%vs_max
+
+    return 
+  end function param_get_vs_max
+
+  !---------------------------------------------------------------------
+
+  double precision function param_get_b_min(self) result(b_min)
+    class(param), intent(in) :: self
+    
+    b_min = self%b_min
+
+    return 
+  end function param_get_b_min
+
+  !---------------------------------------------------------------------
+
+  double precision function param_get_b_max(self) result(b_max)
+    class(param), intent(in) :: self
+    
+    b_max = self%b_max
+
+    return 
+  end function param_get_b_max
+
+  !---------------------------------------------------------------------
+
+  double precision function param_get_z_guess(self) result(z_guess)
+    class(param), intent(in) :: self
+    
+    z_guess = self%z_guess
+
+    return 
+  end function param_get_z_guess
 
   !---------------------------------------------------------------------
 
