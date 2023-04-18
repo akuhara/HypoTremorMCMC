@@ -66,10 +66,10 @@ program main
   
   ! Events
   win_id = [ integer :: ]
-  win_id_file = "detected_win.dat"
+  win_id_file = "selected_win.dat"
   open(newunit=io, file=win_id_file, status="old", iostat=ierr)
   if (ierr /= 0) then
-     error stop "cannot open detected_win.dat"
+     error stop "cannot open selected_win.dat"
   end if
   do 
      read(io, *, iostat=ierr) id, dummy

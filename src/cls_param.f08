@@ -70,6 +70,9 @@ module cls_param
      double precision :: vs_min, vs_max
      double precision :: b_min, b_max
 
+     ! Event assumed during quality control
+     double precision :: z_guess
+
      ! MCMC
      integer :: n_iter, n_burn, n_interval
      integer :: n_chains
@@ -127,6 +130,7 @@ module cls_param
      procedure :: get_vs_max => param_get_vs_max
      procedure :: get_b_min => param_get_b_min
      procedure :: get_b_max => param_get_b_max
+     procedure :: get_z_guess => param_get_z_guess
      procedure :: get_n_iter => param_get_n_iter
      procedure :: get_n_burn => param_get_n_burn
      procedure :: get_n_interval => param_get_n_interval
@@ -403,6 +407,8 @@ contains
        read(val,*) self%b_min
     else if (name == "b_max") then
        read(val,*) self%b_max
+    else if (name == "z_guess") then
+       read(val,*) self%z_guess
     else if (name == "n_iter") then
        read(val,*) self%n_iter
     else if (name == "n_burn") then
@@ -761,6 +767,16 @@ contains
 
     return 
   end function param_get_b_max
+
+  !---------------------------------------------------------------------
+
+  double precision function param_get_z_guess(self) result(z_guess)
+    class(param), intent(in) :: self
+    
+    z_guess = self%z_guess
+
+    return 
+  end function param_get_z_guess
 
   !---------------------------------------------------------------------
 
