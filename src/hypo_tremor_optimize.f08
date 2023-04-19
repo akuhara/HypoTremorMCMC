@@ -4,7 +4,7 @@ program hypo_tremor_mcmc
   use cls_line_text, only: line_max
   use cls_convertor, only: convertor
   use cls_c3_data, only: c3_data
-  use cls_detector, only: detector
+  use cls_correlator, only: correlator
   use cls_measurer, only: measurer
   implicit none 
   integer :: n_args, ierr, rank, n_procs, id_start, id_end, i_sta, n_pair
@@ -13,7 +13,7 @@ program hypo_tremor_mcmc
   type(param) :: para
   type(convertor) :: conv
   type(c3_data), allocatable :: env(:)
-  type(detector) :: dtct
+  type(correlator) :: corr
   type(measurer) :: msr
   logical :: verb
   
@@ -97,7 +97,7 @@ program hypo_tremor_mcmc
 
   ! Detect
 
-  dtct = detector(&
+  corr = correlator(&
        & station_names = para%get_stations(),    &
        & t_win         = para%get_t_win_corr(),  &
        & t_step        = para%get_t_step_corr(), &
@@ -105,7 +105,7 @@ program hypo_tremor_mcmc
        & n_smp         = env(1)%get_n_smp(),     &
        & alpha         = para%get_alpha()        &
        & )
-  call dtct%calc_correlogram(env=env)
+  call corr%calc_correlogram(env=env)
   
   call mpi_barrier(MPI_COMM_WORLD, ierr)
 

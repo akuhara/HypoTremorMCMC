@@ -1,7 +1,7 @@
 program main
   use mod_mpi
   use cls_line_text, only: line_max
-  use cls_detector, only: detector
+  use cls_correlator, only: correlator
   use cls_param, only: param
   use cls_c3_data, only: c3_data
   use, intrinsic :: iso_fortran_env, only: iostat_end
@@ -11,7 +11,7 @@ program main
   integer, allocatable :: rank_in_charge(:)
   character(line_max) :: param_file, env_file
   character(line_max), allocatable :: stnm(:)
-  type(detector) :: dtct
+  type(correlator) :: corr
   type(param) :: para
   type(c3_data), allocatable :: env(:)
   double precision, allocatable :: data(:,:)
@@ -111,9 +111,9 @@ program main
      
      deallocate(data)
   end do
-    
+  
   ! Detect
-  dtct = detector(&
+  corr = correlator(&
        & station_names = para%get_stations(),    &
        & t_win         = para%get_t_win_corr(),  &
        & t_step        = para%get_t_step_corr(), &
@@ -121,7 +121,7 @@ program main
        & n_smp         = env(1)%get_n_smp(),     &
        & alpha         = para%get_alpha()        &
        & )
-  call dtct%calc_correlogram(env=env)
+  call corr%calc_correlogram(env=env)
   
   
 
