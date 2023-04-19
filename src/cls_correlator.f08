@@ -252,7 +252,7 @@ contains
     close(io)
     close(io2)
 
-    call self%eval_correlogram(cc, sta1, sta2)
+    !call self%eval_correlogram(cc, sta1, sta2)
     
 
     return 

@@ -1,4 +1,4 @@
-program hypo_tremor_mcmc
+program hypo_tremor_convert
   use mod_mpi
   use cls_param, only: param
   use cls_line_text, only: line_max
@@ -54,5 +54,5 @@ program hypo_tremor_mcmc
 
   call mpi_finalize(ierr)
   stop
-end program hypo_tremor_mcmc
+end program hypo_tremor_convert
 

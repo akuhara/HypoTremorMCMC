@@ -2,6 +2,7 @@ module cls_measurer
   use mod_mpi
   use cls_line_text, only: line_max
   use mod_signal_process, only: apply_taper
+  use mod_sort, only: quick_sort, quick_select
   use, intrinsic :: iso_fortran_env, only: iostat_end
   use, intrinsic :: iso_c_binding
   implicit none
@@ -31,6 +32,7 @@ module cls_measurer
 
      double precision, allocatable :: cc_thred(:)
      integer :: n_pair_thred
+     double precision :: alpha
      logical, allocatable :: detected(:,:)
 
      type(C_PTR)                            :: plan_r2c, plan_c2r
@@ -56,10 +58,10 @@ contains
   !-------------------------------------------------------------------
   
   type(measurer) function init_measurer(station_names, sta_x, sta_y, &
-       & sta_z, t_win, t_step, n_pair_thred, verb) result(self)
+       & sta_z, t_win, t_step, alpha, n_pair_thred, verb) result(self)
     character(line_max), intent(in) :: station_names(:)
     double precision, intent(in) :: sta_x(:), sta_y(:), sta_z(:)
-    double precision, intent(in) :: t_win, t_step
+    double precision, intent(in) :: t_win, t_step, alpha
     integer, intent(in) :: n_pair_thred
     logical, intent(in) :: verb
     integer :: i, j, k
@@ -77,6 +79,7 @@ contains
     self%verb = verb
     self%t_win = t_win
     self%t_step = t_step
+    self%alpha = alpha
     self%n_pair_thred = n_pair_thred
     
     allocate(self%pair(2, self%n_pair))
@@ -91,6 +94,8 @@ contains
 
     allocate(self%cc_thred(self%n_pair))
 
+
+    ! Read dt, n, and n_win from envelope and corr_max file
     call self%check_files()
 
     allocate(self%r_tmp(self%n))
@@ -149,9 +154,6 @@ contains
        ! Max corr file
        write(target_file, '(a)') &
             & trim(sta1) // "." // trim(sta2) // ".max_corr"
-       if (self%verb) then
-          print *, trim(target_file)
-       end if
        inquire(file=target_file, EXIST=is_ok)
        if (.not. is_ok) then
           write(0,*) "ERROR: " // trim(target_file) // "does not exsit"
@@ -175,17 +177,7 @@ contains
        end if
        prev_n_smp = self%n_win
        
-       ! Threshold file
-       write(target_file, '(a)') &
-            & trim(sta1) // "." // trim(sta2) // ".thred"
-       if (self%verb) then
-          print *, trim(target_file)
-       end if
-       inquire(file=target_file, EXIST=is_ok)
-       if (.not. is_ok) then
-          write(0,*) "ERROR: " // trim(target_file) // "does not exsit"
-          error stop 
-       end if
+       
     end do
     allocate(self%detected(self%n_win, self%n_pair))
     
@@ -197,24 +189,48 @@ contains
 
   subroutine measurer_scan_cc(self)
     class(measurer), intent(inout) :: self
-    integer :: id1, id2, i, io, i_win, ierr, rank
+    integer :: id1, id2, i, io, i_win, ierr, rank, j, k, ios
     character(line_max) :: sta1, sta2, thred_file, max_corr_file
-    character(line_max) :: detected_win_file
-    double precision :: cc, t
+    character(line_max) :: detected_win_file, corr_file
+    double precision :: cc, dummy, t
+    double precision, allocatable :: cc_histo(:), thred_all(:)
     logical, allocatable :: ltmp(:,:)
-
+    
     self%detected = .false.
+    self%cc_thred = 0.d0
     call get_mpi_task_id(self%n_pair, id1, id2)
+
+    allocate(cc_histo(self%n * self%n_win))
     do i = id1, id2
        sta1 = self%pair(1, i)
        sta2 = self%pair(2, i)
-       thred_file = trim(sta1) // "." // trim(sta2) // ".thred"
-       open(newunit=io, file=thred_file, form="formatted", status="old")
-       read(io,*) self%cc_thred(i)
-       !print *, trim(sta1), " -- ", trim(sta2), "  : CC threshold = ", &
-       !     & self%cc_thred(i)
+
+       print *, "Now working on ", trim(sta1) // " - " // trim(sta2)
+       
+       ! Read correlation values to get CC statistics
+       corr_file = trim(sta1) // "." // trim(sta2) // ".corr"
+       open(newunit=io, file=corr_file, form="unformatted", status="old", &
+            & access="stream", iostat=ios)
+       if (ios /= 0) then
+          write(*,*)"ERROR: cannot open ", trim(corr_file)
+          call mpi_finalize(ierr)
+          stop
+       end if
+       do j = 1, self%n * self%n_win
+          read(io) dummy 
+          read(io) dummy 
+          read(io) cc_histo(j)
+       end do
+
        close(io)
 
+       ! Get threshold
+       call quick_sort(cc_histo, 1, self%n * self%n_win)
+       self%cc_thred(i) = cc_histo(int(self%n * self%n_win * self%alpha))
+       !k = int(self%n * self%n_win * self%alpha)
+       !call quick_select(cc_histo, self%n * self%n_win, k, self%cc_thred(i))
+       
+       ! Check whether maximum correlation values exceed threshold
        max_corr_file = trim(sta1) // "." // trim(sta2) // ".max_corr"
        open(newunit=io, file=max_corr_file, form="unformatted", access="stream")
        do i_win = 1, self%n_win
@@ -233,10 +249,10 @@ contains
          & MPI_COMM_WORLD, ierr)
     call get_mpi_task_id(self%n_win, id1, id2)
 
+    ! Count number of station pairs that meet CC condition
     self%win_id = [integer :: ]
     do i_win = 1, self%n_win
        if (count(self%detected(i_win,:)) > self%n_pair_thred) then
-          !print *, "detected! ", count(self%detected(i_win,:)), i_win
           self%win_id = [self%win_id, i_win]
        end if
     end do
@@ -246,6 +262,10 @@ contains
        print *, "# of detected events: ", self%n_detected, "out of ", self%n_win
     end if
     
+    allocate(thred_all(self%n_pair))
+    call mpi_reduce(self%cc_thred, thred_all, self%n_pair, MPI_DOUBLE_PRECISION, &
+         & MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+
     call mpi_comm_rank(MPI_COMM_WORLD, rank, ierr)
     if (rank == 0) then
        detected_win_file = "detected_win.dat"
@@ -253,6 +273,15 @@ contains
        & form="formatted")
        do i = 1, self%n_detected
           write(io,*)self%win_id(i), (self%win_id(i)-1)*self%t_step + 0.5d0 * self%t_win
+       end do
+       close(io)
+
+       open(newunit=io, file="cc_thred.dat", status="replace", iostat=ierr, &
+            & form="formatted")
+       do i = 1, self%n_pair
+          sta1 = self%pair(1,i)
+          sta2 = self%pair(2,i)
+          write(io,*) trim(sta1) //  "   "  // trim(sta2), thred_all(i)
        end do
        close(io)
     end if
