@@ -1,0 +1,84 @@
+#------------------------------------------#
+# Sample Parameter File for HypoTremorMCMC #
+#------------------------------------------#
+
+#------------------#
+# For all programs #
+#------------------#
+#
+# station_file : Input file that lists station names, their position (X-Y-Z), 
+#                and sensitivity
+#
+
+station_file = station_xy.list
+
+#-------------------------#
+# For hypo_tremor_convert #
+#-------------------------#
+#
+# data_dir     : Directory containing SAC data files
+#
+#
+# data_id_file : Input file listing an identifying part of each SAC file
+#                in chronological order
+
+data_dir        = ./data
+data_id_file    = dataID_20d.list            
+
+comp_file       = comp.list                  # 
+filename_format = $STA + / + $ID + . + $COMP # Filename convention
+t_win_conv      = 3000.0                     # Unit length for conversion
+
+#----
+
+# hypo_tremor_correlate
+
+t_win_corr      = 300.d0
+t_step_corr     = 150.d0 
+
+
+# hypo_tremor_measure
+n_pair_thred    = 300 # 550
+alpha           = 0.98d0
+
+# Quality control
+z_guess = 7.0
+vs_min = 2.0
+vs_max = 4.0
+b_min  = 0.015
+b_max  = 0.03
+
+# MCMC
+n_iter = 4000000
+n_burn = 2000000
+n_interval = 1000
+n_chains = 5
+n_cool   = 1
+temp_high = 200.d0
+
+prior_z            = 0.0
+prior_width_z      = 10.0
+prior_width_xy     = 30.0
+prior_vs           = 3.0
+prior_width_vs     = 1.0
+prior_qs           = 250
+prior_width_qs     = 100
+prior_t_corr       = 0.0
+prior_width_t_corr = 0.5
+prior_a_corr       = 0.0
+prior_width_a_corr = 0.02
+
+step_size_z = 0.4
+step_size_xy = 2.0
+step_size_vs = 0.2
+step_size_qs = 5.0
+step_size_t_corr = 0.03
+step_size_a_corr = 0.005
+
+solve_vs = T
+solve_t_corr = T
+solve_qs = T
+solve_a_corr = T
+amp_used = T
+time_used = T
+

@@ -25,11 +25,9 @@ FFLAGS = -pg -Wall -pedantic -fbounds-check -O0 -std=f2008 \
 
 # Example A. General case
 FFTW   = -I/usr/include -lfftw3 -L/usr/lib64
-LAPACK = -llapack -lblas
 
 # Example B. EIC
 #FFTW    = -I$(MKLROOT)/include/fftw -mkl=parallel
-#LAPACK  =  # leave this empty
 
 
 #-----------------------------------------------------------------------
@@ -88,23 +86,23 @@ cls_forward.o: cls_model.mod cls_obs_data.mod
 
 $(HYPO_TREMOR_CONVERT): $(OBJS_HYPO_TREMOR_CONVERT)
 	@if [ ! -d $(BINDIR) ]; then mkdir $(BINDIR); fi
-	$(FC) $(FFLAGS) $(COV) $(FFTW) $(LAPACK) $^ -o $@  
+	$(FC) $(FFLAGS) $(COV) $(FFTW) $^ -o $@  
 
 $(HYPO_TREMOR_CORRELATE): $(OBJS_HYPO_TREMOR_CORRELATE)
 	@if [ ! -d $(BINDIR) ]; then mkdir $(BINDIR); fi
-	$(FC) $(FFLAGS) $(COV) $(FFTW) $(LAPACK) $^ -o $@  
+	$(FC) $(FFLAGS) $(COV) $(FFTW) $^ -o $@  
 
 $(HYPO_TREMOR_MEASURE): $(OBJS_HYPO_TREMOR_MEASURE)
 	@if [ ! -d $(BINDIR) ]; then mkdir $(BINDIR); fi
-	$(FC) $(FFLAGS) $(COV) $(FFTW) $(LAPACK) $^ -o $@  
+	$(FC) $(FFLAGS) $(COV) $(FFTW) $^ -o $@  
 
 $(HYPO_TREMOR_SELECT): $(OBJS_HYPO_TREMOR_SELECT)
 	@if [ ! -d $(BINDIR) ]; then mkdir $(BINDIR); fi
-	$(FC) $(FFLAGS) $(COV) $(FFTW) $(LAPACK) $^ -o $@  
+	$(FC) $(FFLAGS) $(COV) $(FFTW) $^ -o $@  
 
 $(HYPO_TREMOR_MCMC): $(OBJS_HYPO_TREMOR_MCMC)
 	@if [ ! -d $(BINDIR) ]; then mkdir $(BINDIR); fi
-	$(FC) $(FFLAGS) $(COV) $(FFTW) $(LAPACK) $^ -o $@  
+	$(FC) $(FFLAGS) $(COV) $(FFTW) $^ -o $@  
 
 
 .PHONY: clean
@@ -112,6 +110,6 @@ clean:
 	rm -f *.mod $(BINDIR)/* *.o
 
 %.o: %.f08
-	$(FC) $(FFLAGS) $(COV) $(FFTW) $(LAPACK) -c $< -o $*.o 
+	$(FC) $(FFLAGS) $(COV) $(FFTW) -c $< -o $*.o 
 %.mod: %.f08 %.o
 	@:
