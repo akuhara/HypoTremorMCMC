@@ -109,6 +109,27 @@ module cls_param
           & [ character(line_max) :: &
           & "station_file", "data_dir", "data_id_file", &
           & "cmp1", "cmp2", "filename_format", "t_win_conv" ]
+     character(line_max), dimension(3) :: param_correlate = &
+          & [ character(line_max) :: &
+          & "station_file", "t_win_corr", "t_step_corr"]
+     character(line_max), dimension(3) :: param_measure = &
+          & [ character(line_max) :: &
+          & "station_file", "alpha", "n_pair_thred"]
+     character(line_max), dimension(6) :: param_select = &
+          & [character(line_max) :: &
+          & "z_guess", "vs_min", "vs_max", "b_min", "b_max"]
+     character(line_max), dimension(28) :: param_mcmc = &
+          & [character(line_max) :: &
+          & "station_file", "n_iter", "n_burn", "n_interval", &
+          & "n_chains", "n_cool", "temp_high", "prior_z", &
+          & "prior_width_z", "prior_width_xy", "prior_vs", &
+          & "prior_width_vs", "prior_qs", "prior_wdith_qs", &
+          & "prior_width_t_corr", "prior_width_a_corr", &
+          & "step_size_z", "step_size_xy", "step_size_vs", &
+          & "step_size_qs", "step_size_t_corr", "step_size_a_corr", &
+          & "solve_vs", "solve_t_corr", "slove_qs", "solve_a_corr", &
+          & "use_time", "use_amp"]
+          
 
    contains
      procedure :: read_param_file => param_read_param_file
@@ -269,11 +290,46 @@ contains
     integer :: i
     
     if (self%from_where == "convert") then
-       
        do i = 1, size(self%param_convert)
           if (.not. any(self%given == self%param_convert(i))) then
              
              if (self%verb) write(*,*)"ERROR: ", trim(self%param_convert(i)), &
+                  & " is not given."
+             stop
+          end if
+       end do
+    else if(self%from_where == "correlate") then
+       do i = 1, size(self%param_correlate)
+          if (.not. any(self%given == self%param_correlate(i))) then
+             
+             if (self%verb) write(*,*)"ERROR: ", trim(self%param_correlate(i)), &
+                  & " is not given."
+             stop
+          end if
+       end do
+    else if(self%from_where == "measure") then
+       do i = 1, size(self%param_measure)
+          if (.not. any(self%given == self%param_measure(i))) then
+             
+             if (self%verb) write(*,*)"ERROR: ", trim(self%param_measure(i)), &
+                  & " is not given."
+             stop
+          end if
+       end do
+    else if(self%from_where == "select") then
+       do i = 1, size(self%param_select)
+          if (.not. any(self%given == self%param_select(i))) then
+             
+             if (self%verb) write(*,*)"ERROR: ", trim(self%param_select(i)), &
+                  & " is not given."
+             stop
+          end if
+       end do
+    else if(self%from_where == "mcmc") then
+       do i = 1, size(self%param_mcmc)
+          if (.not. any(self%given == self%param_mcmc(i))) then
+             
+             if (self%verb) write(*,*)"ERROR: ", trim(self%param_mcmc(i)), &
                   & " is not given."
              stop
           end if

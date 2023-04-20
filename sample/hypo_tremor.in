@@ -96,6 +96,8 @@ n_pair_thred    = 300
 # b_max   : Maximum attenuation strength to be accepted
 # 
 
+z_guess = 7.0
+
 vs_min = 2.0
 
 vs_max = 4.0
@@ -103,6 +105,7 @@ vs_max = 4.0
 b_min  = 0.015
 
 b_max  = 0.03
+
 #----------------------#
 # For hypo_tremor_mcmc #
 #----------------------#

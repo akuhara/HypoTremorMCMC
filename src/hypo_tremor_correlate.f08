@@ -36,7 +36,7 @@ program main
   call get_command_argument(1, param_file)
 
   ! Read parameter file
-  para = param(param_file, verb=verb, from_where="optimize")
+  para = param(param_file, verb=verb, from_where="correlate")
   call mpi_barrier(MPI_COMM_WORLD, ierr)
   
   ! Get task ID
