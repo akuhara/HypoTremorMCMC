@@ -10,13 +10,12 @@ This repository contains software written in modern fortran (F2008 style) for
 determining the source locations tremor signals without clear phase onsets. The details of the method is provided in a preprint 
 [(Akuhara et al. 2023, EarthArXiv)](https://doi.org/10.31223/X59S9J).
  
-## Installation and Usage
 
-To use the software, you will need to have a Fortran compiler, OpenMPI, and FFTW installed on your system. 
 
-Here are the steps to install and run the program:
+## Installation 
 
-### Installation 
+To install the software, you need to have a Fortran compiler, OpenMPI, and FFTW installed on your system. 
+
 
 1. Clone the repository to your local machine:
 ```
