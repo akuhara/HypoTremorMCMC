@@ -1,12 +1,11 @@
 name: Fortran Build
-
 on:
   push:
     branches: [ main ]
 
 jobs:
   build:
-    runs-on: centos-latest
+    runs-on: ubuntu-20.04
 
     steps:
       - name: Checkout repository
@@ -14,10 +13,9 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo yum update -y
-          sudo yum install -y gcc-gfortran openmpi-devel fftw3-devel
-
+          sudo apt-get update
+          sudo apt-get install -y gfortran libopenmpi-dev libfftw3-dev
       - name: Move to src directory and build
         working-directory: src
         run: |
-          make FFTW="-I/usr/include -L/usr/lib64 -lfftw3"
+          make FFTW="-I/usr/include -L/usr/lib/x86_64-linux-gnu -lfftw3"
