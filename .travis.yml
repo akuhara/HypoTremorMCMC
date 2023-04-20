@@ -1,0 +1,19 @@
+language: python
+
+addons:
+  apt:
+    packages:
+      - gfortran
+      - libopnmepi-dev
+      - libfftw3-dev
+      - openmpi-bin
+
+git:
+  dpeth: false
+
+branches:
+  only:
+  - main
+
+script:
+  - cd src & make FFTW="-I/usr/include -lfftw3"
