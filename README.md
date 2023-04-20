@@ -12,7 +12,7 @@ determining the source locations tremor signals without clear phase onsets. The 
  
 ## Installation and Usage
 
-To use the software, you will need to have a Fortran compiler and OpenMPI, FFTW, LAPACK installed on your system. 
+To use the software, you will need to have a Fortran compiler, OpenMPI, and FFTW installed on your system. 
 
 Here are the steps to install and run the program:
 
@@ -37,15 +37,17 @@ To use the program, follow these steps:
 1. Create a parameter file with the necessary input parameters, and other files containing required information, such as input filename convention and station arrangement. You also need to prepare data file in SAC format. See the example file `hypo_tremor_mcmc.in` for guidance on the required format. 
 
 
-2. Run the three programs one by one:
+2. Run the five programs one by one:
 
 ```
-mpirun -np [process number] hypo_tremor_optimize [parameter file]
-mpirun -np [process number] hypo_tremor_select [parameter file]
-mpirun -np [process number] hypo_tremor_mcmc [parameter file]
+mpirun -np [process number] hypo_tremor_convert   [parameter file]
+mpirun -np [process number] hypo_tremor_correlate [parameter file]
+mpirun -np [process number] hypo_tremor_measure   [parameter file]
+mpirun -np [process number] hypo_tremor_select    [parameter file]
+mpirun -np [process number] hypo_tremor_mcmc      [parameter file]
 ```
 
-The above three programs (`hypo_tremor_detect`, `hypo_tremor_select`, and `hypo_tremor_mcmc`) must be executed in this order because some necessary input files are created by the previous program. 
+The above five programs (`hypo_tremor_convert`, `hypo_tremor_correlate`, `hypo_tremor_measure`, `hypo_tremor_select`, and `hypo_tremor_mcmc`) must be executed in this order because some necessary input files are created by the previous program. 
 
 
 ## Contributing

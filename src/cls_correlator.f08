@@ -1,4 +1,4 @@
-module cls_detector
+module cls_correlator
   use cls_c3_data, only: c3_data
   use cls_line_text, only: line_max
   use mod_mpi
@@ -8,7 +8,7 @@ module cls_detector
   implicit none
   include 'fftw3.f03'
 
-  type detector
+  type correlator
      private
      
      integer :: n_stations
@@ -34,22 +34,22 @@ module cls_detector
      logical :: debug = .false.
 
    contains
-     !procedure :: calc_stats => detector_calc_stats
-     procedure :: calc_correlogram => detector_calc_correlogram
-     procedure :: run_cross_corr   => detector_run_cross_corr
-     procedure :: measure_lag_time => detector_measure_lag_time
-     procedure :: eval_correlogram => detector_eval_correlogram
+     !procedure :: calc_stats => correlator_calc_stats
+     procedure :: calc_correlogram => correlator_calc_correlogram
+     procedure :: run_cross_corr   => correlator_run_cross_corr
+     procedure :: measure_lag_time => correlator_measure_lag_time
+     procedure :: eval_correlogram => correlator_eval_correlogram
      
-  end type detector
+  end type correlator
   
-  interface detector
-     module procedure init_detector
-  end interface detector
+  interface correlator
+     module procedure init_correlator
+  end interface correlator
   
 contains
   
   !-------------------------------------------------------------------------
-  type(detector) function init_detector(station_names, t_win, t_step, &
+  type(correlator) function init_correlator(station_names, t_win, t_step, &
        & dt, n_smp, alpha) result(self)
     character(line_max), intent(in) :: station_names(:)
     double precision, intent(in) :: t_win, t_step, dt, alpha
@@ -69,10 +69,10 @@ contains
     self%alpha  = alpha
 
     if (t_win < 0.d0) then
-       error stop "ERROR: t_win must be > 0 (init_detector)"
+       error stop "ERROR: t_win must be > 0 (init_correlator)"
     end if
     if (t_step < 0.d0) then
-       error stop "ERROR: t_step must be > 0 (init_detector)"
+       error stop "ERROR: t_step must be > 0 (init_correlator)"
     end if
 
     self%n      = nint(self%t_win  / self%dt)
@@ -91,12 +91,12 @@ contains
     
     
     return 
-  end function init_detector
+  end function init_correlator
 
   !-------------------------------------------------------------------------
 
-  subroutine detector_calc_correlogram(self, env)
-    class(detector), intent(inout) :: self
+  subroutine correlator_calc_correlogram(self, env)
+    class(correlator), intent(inout) :: self
     type(c3_data), intent(in) ::  env(:)
     integer :: i_sta, j_sta, n_pair, n_sta, i, j, io, ierr
     integer :: id_start, id_end, id, rank
@@ -112,7 +112,7 @@ contains
        if (env(i_sta)%get_n_cmps() /= 1) then
           print *, "n_cmps=", env(i_sta)%get_n_cmps()
           error stop "ERROR: multiple components is not supported yet" // &
-               & " (detector_calc_correlogram)"
+               & " (correlator_calc_correlogram)"
        end if
     end do
 
@@ -157,23 +157,13 @@ contains
     end do
     
     
-    call mpi_comm_rank(MPI_COMM_WORLD, rank, ierr)
-    if (rank == 0) then
-       open(newunit=io, file="cc_sum.dat", status="replace", &
-            & form="unformatted", access="stream", iostat=ierr)
-       if (ierr /= 0) then
-          error stop "ERROR: cannot create cc_sum.dat"
-       end if
-       
-    end if
-    
     return 
-  end subroutine detector_calc_correlogram
+  end subroutine correlator_calc_correlogram
     
   !-------------------------------------------------------------------------
 
-  subroutine detector_run_cross_corr(self, env1, env2, sta1, sta2)
-    class(detector), intent(inout) :: self
+  subroutine correlator_run_cross_corr(self, env1, env2, sta1, sta2)
+    class(correlator), intent(inout) :: self
     type(c3_data), intent(in) :: env1, env2
     character(line_max), intent(in) :: sta1, sta2
     integer :: n, i, i1, i2, n2, io, j, ierr, io2, i_corr_max
@@ -262,16 +252,16 @@ contains
     close(io)
     close(io2)
 
-    call self%eval_correlogram(cc, sta1, sta2)
+    !call self%eval_correlogram(cc, sta1, sta2)
     
 
     return 
-  end subroutine detector_run_cross_corr
+  end subroutine correlator_run_cross_corr
 
   !-------------------------------------------------------------------------
 
-  subroutine detector_eval_correlogram(self, cc, sta1, sta2)
-    class(detector), intent(inout) :: self
+  subroutine correlator_eval_correlogram(self, cc, sta1, sta2)
+    class(correlator), intent(inout) :: self
     double precision, intent(in) :: cc(self%n, self%n_win)
     character(line_max), intent(in) :: sta1, sta2
     double precision :: tmp(self%n_win * self%n), cc_thred
@@ -298,14 +288,14 @@ contains
 
 
     return 
-  end subroutine detector_eval_correlogram
+  end subroutine correlator_eval_correlogram
     
     
   !-------------------------------------------------------------------------
   
-  subroutine detector_measure_lag_time(self, x1, x2, l1, l2, i_corr_max, &
+  subroutine correlator_measure_lag_time(self, x1, x2, l1, l2, i_corr_max, &
        & sta1, sta2)
-    class(detector), intent(inout) :: self
+    class(correlator), intent(inout) :: self
     double precision, intent(in) :: x1(self%n), x2(self%n)
     double precision, intent(in) :: l1, l2
     integer, intent(in) :: i_corr_max
@@ -375,8 +365,8 @@ contains
 
 
     return 
-  end subroutine detector_measure_lag_time
+  end subroutine correlator_measure_lag_time
 
   !-------------------------------------------------------------------------
   
-end module cls_detector
+end module cls_correlator

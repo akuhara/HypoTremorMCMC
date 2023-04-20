@@ -141,14 +141,11 @@ contains
     it = 0
     irow = 0
     
-    write(*,*)"n_stored = ", self%c3%get_n_smp()
-    ! n_smp is a total number of elemets stored in c3_data
-
-
     
-    write(*,*)self%filenames
     first_flag = .true.
     last_flag  = .false.
+
+    
     if (debug) then
        write(debug_raw_file,'(a,a)') trim(self%station_name) // '.debug'
        open(newunit=io, file=debug_raw_file, status="replace")
@@ -177,7 +174,6 @@ contains
           !n_len = n2 + self%c3%get_n_smp()
           n_len = self%n
           n_last_read = self%c3%get_n_smp()
-          write(*,*)"n_len=", n_len, self%n
        end if
        
        
@@ -231,8 +227,7 @@ contains
             & processed(1:n_len, 1:self%n_cmps))
        
        
-       ! << Make output >> ! This section has an issue of expanding memory size
-       
+       ! << Make output >> 
        if (.not. first_flag .and. .not. last_flag) then
           i_start = n4 + 1
           i_end   = self%n - n4
@@ -262,9 +257,9 @@ contains
     
     if (debug) close(io)
     
-    ! Decimate
+    ! Make envelope file
     block 
-      integer :: n_out, i, n_fac, i_cmp
+      integer :: n_out, i
       double precision, allocatable :: x_out(:,:)
       double precision :: dt_out
       character(line_max) :: out_file
@@ -273,8 +268,7 @@ contains
       allocate(x_out(1:n_out,1))
       x_out = self%c3_out%get_data()
       dt_out = self%c3_out%get_dt()
-      write(out_file,'(a,a,a)')trim(self%station_name) // ".", &
-           & "merged", '.env' 
+      write(out_file,'(a,a)')trim(self%station_name),".merged.env"
       open(newunit=io, file=out_file, access='stream', &
            & form='unformatted', status='replace')
       do i = 1, n_out
@@ -444,13 +438,12 @@ contains
     integer, intent(in) :: n, n_cmps
     double precision, intent(in) :: x(1:n,1:n_cmps)
     double precision :: x_out(1:n)
-    double precision :: s
-    integer :: i, i_cmp
+    integer :: i
     
     do concurrent (i = 1:n)
        x_out(i) = sqrt(sum((x(i,1:n_cmps) * self%sta_amp_fac(1:n_cmps))**2))
     end do
-          
+    
     return 
   end function convertor_merge_components
   

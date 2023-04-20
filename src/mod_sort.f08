@@ -36,11 +36,58 @@ module mod_sort
   
   public quick_sort
   public find_median
+  public quick_select
   private swap 
   
 contains
   
   !---------------------------------------------------------------------
+  recursive subroutine quick_select(arr, n, k, rslt)
+    implicit none
+    double precision, dimension(:), intent(inout) :: arr
+    integer, intent(in) :: n, k
+    double precision, intent(out) :: rslt
+    
+    integer :: i, j, mid
+    double precision :: pivot
+    
+    if (n == 1) then
+       rslt = arr(1)
+       return
+    end if
+    
+    mid = n / 2
+    pivot = arr(mid)
+    
+    i = 1
+    j = n
+    
+    do
+       do while (arr(i) < pivot)
+          i = i + 1
+       end do
+
+       do while (arr(j) > pivot)
+          j = j - 1
+       end do
+       
+       if (i >= j) then
+          exit
+       end if
+       
+       call swap(arr, i, j)
+    end do
+
+    if (k <= i) then
+       call quick_select(arr(1:i), i, k, rslt)
+    else
+       call quick_select(arr(i+1:n), n-i, k-i, rslt)
+    end if
+    
+  end subroutine quick_select
+  
+  !---------------------------------------------------------------------
+
   
   !> @brief
   !> Subroutine to perform quick sort. The main target array to be 
