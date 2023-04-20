@@ -117,7 +117,7 @@ module cls_param
           & "station_file", "alpha", "n_pair_thred"]
      character(line_max), dimension(6) :: param_select = &
           & [character(line_max) :: &
-          & "z_guess", "vs_min", "vs_max", "b_min", "b_max"]
+          & "station_file", "z_guess", "vs_min", "vs_max", "b_min", "b_max"]
      character(line_max), dimension(28) :: param_mcmc = &
           & [character(line_max) :: &
           & "station_file", "n_iter", "n_burn", "n_interval", &
