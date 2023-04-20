@@ -16,15 +16,24 @@ station_file = station_xy.list
 # For hypo_tremor_convert #
 #-------------------------#
 #
-# data_dir     : Directory containing SAC data files
+# data_dir        : Directory containing SAC data files
 #
 #
-# data_id_file : Input file listing an identifying part of each SAC file
-#                in chronological order
-
+# data_id_file    : Input file listing an identifying part of each SAC file
+#                   in chronological order
+#
+#
+#
+# filename_format : Filename convention for SAC data files constituted of
+#                   the three variables ($STA, $ID, and $CMP, representing, 
+#                   station name, file ID, and component, 
+#                   respectively), the concatenation operator (+), and 
+#                   arbitral character strings
+#
+# t_win_conv      : Time length of one data chunk to which the envelope 
+#                   transformation is applied
 data_dir        = ./data
 data_id_file    = dataID_20d.list            
-
 comp_file       = comp.list                  # 
 filename_format = $STA + / + $ID + . + $COMP # Filename convention
 t_win_conv      = 3000.0                     # Unit length for conversion
