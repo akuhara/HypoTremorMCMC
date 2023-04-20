@@ -6,7 +6,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: centos-latest
 
     steps:
       - name: Checkout repository
@@ -14,11 +14,10 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y gfortran libopenmpi-dev libfftw3-dev
+          sudo yum update -y
+          sudo yum install -y gcc-gfortran openmpi-devel fftw3-devel
 
       - name: Move to src directory and build
         working-directory: src
         run: |
-          make FFTW="-I/usr/include -L/usr/lib/x86_64-linux-gnu -lfftw3"
-          
+          make FFTW="-I/usr/include -L/usr/lib64 -lfftw3"
