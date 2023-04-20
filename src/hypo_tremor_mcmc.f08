@@ -98,8 +98,8 @@ program main
        & sta_y          = para%get_sta_y(),      &
        & sta_z          = para%get_sta_z(),      &
        & obs            = obs,                   &
-       & amp_used       = para%get_amp_used(),   &
-       & time_used      = para%get_time_used()   &
+       & use_amp       = para%get_use_amp(),   &
+       & use_time      = para%get_use_time()   &
        & )
        
 

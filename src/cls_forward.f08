@@ -15,8 +15,8 @@ module cls_forward
      double precision, allocatable :: log_t_stdv(:,:)
      double precision, allocatable :: log_a_stdv(:,:)
      
-     logical :: amp_used
-     logical :: time_used
+     logical :: use_amp
+     logical :: use_time
 
      
    contains
@@ -34,11 +34,11 @@ contains
   !------------------------------------------------------------------------------
 
   type(forward) function init_forward(n_sta, n_events, sta_x, sta_y, sta_z, &
-       & obs, amp_used, time_used) result(self)
+       & obs, use_amp, use_time) result(self)
     integer, intent(in) :: n_sta, n_events
     double precision, intent(in) :: sta_x(:), sta_y(:), sta_z(:)
     type(obs_data), intent(in) :: obs
-    logical, intent(in) :: amp_used, time_used
+    logical, intent(in) :: use_amp, use_time
     
     integer :: i, j, k
 
@@ -52,8 +52,8 @@ contains
     
     self%n_events = n_events
     
-    self%amp_used = amp_used
-    self%time_used = time_used
+    self%use_amp = use_amp
+    self%use_time = use_time
     
     allocate(self%t_obs(self%n_sta, self%n_events))
     allocate(self%t_stdv(self%n_sta, self%n_events))
@@ -189,7 +189,7 @@ contains
     
     log_likelihood = 0.d0
 
-    if (self%time_used) then
+    if (self%use_time) then
        call self%calc_travel_time(hypo, t_corr, vs, t_syn)
        do i = 1, self%n_events
           do j = 1, self%n_sta 
@@ -200,7 +200,7 @@ contains
           end do
        end do
     end if
-    if (self%amp_used) then
+    if (self%use_amp) then
        call self%calc_amp(hypo, a_corr, qs, vs, a_syn)
        do i = 1, self%n_events
           do j = 1, self%n_sta 

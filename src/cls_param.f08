@@ -81,8 +81,10 @@ module cls_param
      double precision :: prior_xy, prior_z
      double precision :: prior_width_vs, prior_vs
      double precision :: prior_width_qs, prior_qs
-     double precision :: prior_width_t_corr, prior_t_corr
-     double precision :: prior_width_a_corr, prior_a_corr
+     double precision :: prior_t_corr = 0.d0
+     double precision :: prior_width_t_corr
+     double precision :: prior_a_corr = 0.d0
+     double precision :: prior_width_a_corr
      double precision :: step_size_xy, step_size_z
      double precision :: step_size_vs, step_size_t_corr
      double precision :: step_size_qs, step_size_a_corr
@@ -93,14 +95,24 @@ module cls_param
      logical :: solve_qs
      logical :: solve_a_corr
 
-     logical :: amp_used
-     logical :: time_used
+     logical :: use_amp
+     logical :: use_time
 
      ! Verbose
      logical :: verb = .false.
      
+     ! For checking parameters 
+     integer :: n_given
+     character(line_max) :: given(100)
+     character(line_max) :: from_where
+     character(line_max), dimension(7) :: param_convert = &
+          & [ character(line_max) :: &
+          & "station_file", "data_dir", "data_id_file", &
+          & "cmp1", "cmp2", "filename_format", "t_win_conv" ]
+
    contains
      procedure :: read_param_file => param_read_param_file
+     procedure :: check_params => param_check_params
      procedure :: read_station_file => param_read_station_file
      procedure :: read_data_id_file => param_read_data_id_file
      procedure :: set_value  => param_set_value
@@ -156,8 +168,8 @@ module cls_param
      procedure :: get_solve_t_corr => param_get_solve_t_corr
      procedure :: get_solve_qs => param_get_solve_qs
      procedure :: get_solve_a_corr => param_get_solve_a_corr
-     procedure :: get_amp_used => param_get_amp_used
-     procedure :: get_time_used => param_get_time_used
+     procedure :: get_use_amp => param_get_use_amp
+     procedure :: get_use_time => param_get_use_time
      
   end type param
   
@@ -171,12 +183,12 @@ contains
   
   type(param) function init_param(param_file, verb, from_where) result(self)
     character(len=*), intent(in) :: param_file
-    logical, intent(in), optional :: verb
+    logical, intent(in)      :: verb
     character(*), intent(in) :: from_where
     
-    if (present(verb)) then
-       self%verb = verb
-    end if
+    self%verb = verb
+    
+    self%from_where = from_where
     
     ! Read parmeter file
     if (self%verb) then
@@ -184,21 +196,22 @@ contains
             & trim(param_file), " >>"
     end if    
     self%param_file = param_file
+    self%n_given = 0
     call self%read_param_file()
     if (self%verb) then
        write(*,*)
     end if
     
-    if (from_where == "optimize" .or. from_where == "select" &
-         &                     .or. from_where == "mcmc") then
-       ! Read station file
-       if (self%verb) &
-            & write(*,'(3A)')"<< Reading ", trim(self%station_file), " >>"
-       call self%read_station_file()
-       if (self%verb) write(*,*)
-    end if
+    ! Check parameters
+    call self%check_params()
 
-    if (from_where == "optimize") then
+    ! Read station file
+    if (self%verb) &
+         & write(*,'(3A)')"<< Reading ", trim(self%station_file), " >>"
+    call self%read_station_file()
+    if (self%verb) write(*,*)
+    
+    if (from_where == "convert") then
        ! Read data ID file
        if (self%verb) &
             & write(*,'(3A)')"<< Reading ", trim(self%data_id_file), " >>"
@@ -206,7 +219,7 @@ contains
        if (self%verb) write(*,*)
     end if
 
-    if (from_where == "optimize") then
+    if (from_where == "convert") then
        call self%make_filenames()
     end if
     
@@ -245,8 +258,32 @@ contains
     end do
     close(io)
     
+
     return 
   end subroutine param_read_param_file
+
+  !---------------------------------------------------------------------
+
+  subroutine param_check_params(self)
+    class(param), intent(inout) :: self
+    integer :: i
+    
+    if (self%from_where == "convert") then
+       
+       do i = 1, size(self%param_convert)
+          if (.not. any(self%given == self%param_convert(i))) then
+             
+             if (self%verb) write(*,*)"ERROR: ", trim(self%param_convert(i)), &
+                  & " is not given."
+             stop
+          end if
+       end do
+    end if
+
+    
+    
+    return 
+  end subroutine param_check_params
 
   !---------------------------------------------------------------------
 
@@ -423,10 +460,10 @@ contains
        read(val,*) self%solve_t_corr
     else if (name == "solve_a_corr") then
        read(val,*) self%solve_a_corr
-    else if (name == "amp_used") then
-       read(val,*) self%amp_used
-    else if (name == "time_used") then
-       read(val,*) self%time_used
+    else if (name == "use_amp") then
+       read(val,*) self%use_amp
+    else if (name == "use_time") then
+       read(val,*) self%use_time
     else
        if (self%verb) then
           write(0,*)"ERROR: Invalid parameter name"
@@ -434,6 +471,10 @@ contains
        end if
        stop
     end if
+    
+    self%n_given = self%n_given + 1
+    self%given(self%n_given) = name
+    
     return 
   end subroutine param_set_value
 
@@ -1033,25 +1074,25 @@ contains
   
   !---------------------------------------------------------------------
   
-  logical function param_get_amp_used(self) &
-       & result(amp_used)
+  logical function param_get_use_amp(self) &
+       & result(use_amp)
     class(param), intent(in) :: self
     
-    amp_used = self%amp_used
+    use_amp = self%use_amp
 
     return 
-  end function param_get_amp_used
+  end function param_get_use_amp
   
   !---------------------------------------------------------------------
 
-  logical function param_get_time_used(self) &
-       & result(time_used)
+  logical function param_get_use_time(self) &
+       & result(use_time)
     class(param), intent(in) :: self
     
-    time_used = self%time_used
+    use_time = self%use_time
 
     return 
-  end function param_get_time_used
+  end function param_get_use_time
   
   !---------------------------------------------------------------------
 

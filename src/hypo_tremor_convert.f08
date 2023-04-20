@@ -31,7 +31,7 @@ program hypo_tremor_convert
 
   
   ! Read parameter file
-  para = param(param_file, verb=verb, from_where="optimize")
+  para = param(param_file, verb=verb, from_where="convert")
   call mpi_barrier(MPI_COMM_WORLD, ierr)
 
   ! Get task ID
