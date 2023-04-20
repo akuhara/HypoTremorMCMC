@@ -32,7 +32,7 @@ module cls_param
      character(line_max) :: param_file
      
      ! Components
-     integer :: n_cmps
+     integer :: n_cmps = 2
      
      ! Stations
      character(line_max) :: station_file
@@ -47,8 +47,7 @@ module cls_param
      character(line_max), allocatable :: data_id(:)
      
      ! Components
-     character(line_max) :: comp_file
-     character(line_max), allocatable :: comps(:)
+     character(line_max) :: cmps(2)
 
      ! File format
      character(line_max) :: data_dir, filename_format
@@ -104,7 +103,6 @@ module cls_param
      procedure :: read_param_file => param_read_param_file
      procedure :: read_station_file => param_read_station_file
      procedure :: read_data_id_file => param_read_data_id_file
-     procedure :: read_comp_file => param_read_comp_file
      procedure :: set_value  => param_set_value
      procedure :: get_n_cmps => param_get_n_cmps
      procedure :: get_n_stations => param_get_n_stations
@@ -116,7 +114,7 @@ module cls_param
      procedure :: get_sta_amp_fac => param_get_sta_amp_fac
      procedure :: get_n_data_id => param_get_n_data_id
      procedure :: get_data_id => param_get_data_id
-     procedure :: get_comps => param_get_comps
+     procedure :: get_cmps => param_get_cmps
      procedure :: get_data_dir => param_get_data_dir
      procedure :: get_filename_format => param_get_filename_format
      procedure :: make_filenames => param_make_filenames
@@ -191,14 +189,6 @@ contains
        write(*,*)
     end if
     
-    if (from_where == "optimize") then
-       ! Read component file
-       if (self%verb) &
-            & write(*,'(3A)')"<< Reading ", trim(self%comp_file), " >>"
-       call self%read_comp_file()
-       if (self%verb) write(*,*)
-    end if
-
     if (from_where == "optimize" .or. from_where == "select" &
          &                     .or. from_where == "mcmc") then
        ! Read station file
@@ -339,38 +329,6 @@ contains
 
   !---------------------------------------------------------------------  
   
-  subroutine param_read_comp_file(self)
-    class(param), intent(inout) :: self
-    integer :: io, ierr, i
-    
-
-    open(newunit=io, file=self%comp_file, status="old", iostat=ierr)
-    if (ierr /= 0) then
-       write(0,*)"ERROR: cannot open", trim(self%comp_file)
-       stop
-    end if
-    
-    self%n_cmps = 0
-    do 
-       read(io, *, iostat=ierr)
-       if (ierr /= 0) exit
-       self%n_cmps = self%n_cmps + 1
-    end do
-    
-    rewind(io)
-    allocate(self%comps(self%n_cmps))
-    
-    do i = 1, self%n_cmps
-       read(io, '(a)') self%comps(i)
-       if (self%verb) write(*,'(1x,a)') trim(self%comps(i))
-    end do
-    close(io)
-    
-    return 
-  end subroutine param_read_comp_file
-
-  !---------------------------------------------------------------------
-
   subroutine param_set_value(self, name, val)
     class(param), intent(inout) :: self
     character(len=*), intent(in) :: name, val
@@ -383,8 +341,10 @@ contains
        self%station_file = val
     else if (name == "data_id_file") then
        self%data_id_file = val
-    else if (name == "comp_file") then
-       self%comp_file = val
+    else if (name == "cmp1") then
+       self%cmps(1) = val
+    else if (name == "cmp2") then
+       self%cmps(2) = val
     else if (name == "data_dir") then
        self%data_dir = val
     else if (name == "filename_format") then
@@ -591,14 +551,14 @@ contains
 
   !---------------------------------------------------------------------
 
-  function param_get_comps(self) result(comps)
+  function param_get_cmps(self) result(cmps)
     class(param), intent(in) :: self
-    character(line_max) :: comps(self%n_cmps)
+    character(line_max) :: cmps(self%n_cmps)
 
-    comps = self%comps
+    cmps = self%cmps
 
     return 
-  end function param_get_comps
+  end function param_get_cmps
 
   !---------------------------------------------------------------------
   
@@ -648,10 +608,10 @@ contains
                      self%filenames(i_id, i_cmp, i_sta) = &
                           trim(self%filenames(i_id, i_cmp, i_sta)) // &
                           & trim(self%stations(i_sta))
-                  else if (trim(list(i_list)) == "$COMP") then
+                  else if (trim(list(i_list)) == "$CMP") then
                      self%filenames(i_id, i_cmp, i_sta) = &
                           trim(self%filenames(i_id, i_cmp, i_sta)) // &
-                          & trim(self%comps(i_cmp))
+                          & trim(self%cmps(i_cmp))
                   else 
                      self%filenames(i_id, i_cmp, i_sta) = &
                           trim(self%filenames(i_id, i_cmp, i_sta)) // &

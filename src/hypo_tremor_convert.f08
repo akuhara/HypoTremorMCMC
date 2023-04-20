@@ -43,7 +43,6 @@ program hypo_tremor_convert
      conv = convertor(&
           & t_win        = para%get_t_win_conv() ,        &
           & filenames    = para%get_filenames(i_sta),     &
-          & comps        = para%get_comps(),              &
           & station_name = para%get_station(i_sta),       &
           & sta_amp_fac  = para%get_sta_amp_fac(i_sta)    &
           & )

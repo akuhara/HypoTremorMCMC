@@ -22,7 +22,11 @@ station_file = station_xy.list
 # data_id_file    : Input file listing an identifying part of each SAC file
 #                   in chronological order
 #
+# cmp1            : Name of the first horizontal component specified in the
+#                   filename of SAC data files
 #
+# cmp2            : Name of the second horizontal component specified in the
+#                   filename of SAC data files
 #
 # filename_format : Filename convention for SAC data files constituted of
 #                   the three variables ($STA, $ID, and $CMP, representing, 
@@ -32,11 +36,13 @@ station_file = station_xy.list
 #
 # t_win_conv      : Time length of one data chunk to which the envelope 
 #                   transformation is applied
+#
 data_dir        = ./data
-data_id_file    = dataID_20d.list            
-comp_file       = comp.list                  # 
-filename_format = $STA + / + $ID + . + $COMP # Filename convention
-t_win_conv      = 3000.0                     # Unit length for conversion
+data_id_file    = dataID_2d.list            
+cmp1            = EH1
+cmp2            = EH2
+filename_format = $STA + / + $ID + . + $CMP 
+t_win_conv      = 3000.0                    
 
 #----
 

@@ -14,10 +14,9 @@ module cls_convertor
      double precision           :: t_window_interval
      double precision           :: dt
      integer                    :: n
-     integer                    :: n_cmps
+     integer                    :: n_cmps = 2
      character(line_max), allocatable :: filenames(:,:)
      character(line_max)        :: station_name
-     character(line_max), allocatable :: comps(:)
      double precision, allocatable :: sta_amp_fac(:)
      
      ! Band pass
@@ -59,11 +58,10 @@ contains
   !---------------------------------------------------------------------
   
   type(convertor) function init_convertor(t_win, &
-       & filenames, comps, station_name, sta_amp_fac) result(self)
+       & filenames, station_name, sta_amp_fac) result(self)
     double precision, intent(in) :: t_win
     character(line_max), intent(in) :: filenames(:,:)
     character(line_max), intent(in) :: station_name
-    character(line_max), intent(in) :: comps(:)
     double precision, intent(in) :: sta_amp_fac(:)
     integer :: n_files
     
@@ -71,12 +69,9 @@ contains
     self%t_win = t_win
     self%t_window_interval = t_win * 0.5d0
     n_files = size(filenames(:,1))
-    self%n_cmps = size(comps)
     allocate(self%filenames(n_files, self%n_cmps))
     self%filenames = filenames
     self%station_name = station_name
-    allocate(self%comps(self%n_cmps))
-    self%comps = comps
     allocate(self%sta_amp_fac(self%n_cmps))
     self%sta_amp_fac = sta_amp_fac
     
