@@ -30,26 +30,62 @@ git clone https://github.com/username/HypoTremorMCMC.git`
 cd dir
 make
 ``` 
+## How It Works
 
-### Usage
+Follow the five steps below to estimate tremor locations.
 
-To use the program, follow these steps: 
+### Step 1: Envelope conversion
 
-1. Create a parameter file with the necessary input parameters, and other files containing required information, such as input filename convention and station arrangement. You also need to prepare data file in SAC format. See the example file `hypo_tremor_mcmc.in` for guidance on the required format. 
+This step reads continuous seismic records of two horizontal components from SAC format files and convert them into a smoothed envelope. 
 
-
-2. Run the five programs one by one:
-
+#### Usage
 ```
-mpirun -np [process number] hypo_tremor_convert   [parameter file]
-mpirun -np [process number] hypo_tremor_correlate [parameter file]
-mpirun -np [process number] hypo_tremor_measure   [parameter file]
-mpirun -np [process number] hypo_tremor_select    [parameter file]
-mpirun -np [process number] hypo_tremor_mcmc      [parameter file]
+ mpirun -np [process number] hypo_tremor_convert [parameter file]
 ```
 
-The above five programs (`hypo_tremor_convert`, `hypo_tremor_correlate`, `hypo_tremor_measure`, `hypo_tremor_select`, and `hypo_tremor_mcmc`) must be executed in this order because some necessary input files are created by the previous program. 
+### Step 2: Calculate cross-correlation
 
+This step calculates cross-correlation functions of the envelope between all station pairs. 
+
+#### Usage
+```
+ mpirun -np [process number] hypo_tremor_correlate [parameter file]
+```
+
+### Step 3: Measure & optimize time- and amplitude- difference
+
+This step first measure the arrival time- and amplitude-difference between station pairs and then optimize them to obtain staiton-specific relative measurements.
+See Section 3.1 in [Akuhara et al. (2023, EarthArXiv)](https://doi.org/10.31223/X59S9J).
+
+#### Usage
+```
+ mpirun -np [process number] hypo_tremor_measure [parameter file]
+```
+
+### Step 4: Select good-quality events
+
+This step selects events with good-quality on the basis of the rough estimates of propagation speed and attenuation strengths of a seismic wave.
+See Section 3.2 in [Akuhara et al. (2023, EarthArXiv)](https://doi.org/10.31223/X59S9J).
+
+#### Usage
+```
+ mpirun -np [process number] hypo_tremor_select [parameter file]
+```
+
+### Step 5: Perform MCMC 
+
+This step peforms Bayesian inversion using Markov-chain Monte Carlo (MCMC) method to obtain the posterior probability of source locations.
+See Section 3.3 in [Akuhara et al. (2023, EarthArXiv)](https://doi.org/10.31223/X59S9J).
+
+#### Usage
+```
+ mpirun -np [process number] hypo_tremor_mcmc [parameter file]
+```
+
+#### Usage
+```
+ mpirun -np [process number] hypo_tremor_select [parameter file]
+```
 
 ## Contributing
 
