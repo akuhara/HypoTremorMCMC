@@ -21,7 +21,7 @@ To install the software, you need to have a Fortran compiler, OpenMPI, and FFTW 
 
 1. Clone the repository to your local machine:
 ```
-git clone https://github.com/username/HypoTremorMCMC.git` 
+git clone https://github.com/akuhara/HypoTremorMCMC.git 
 ```
 
 2. Comple the program by running the following command in the `src` directory of the repository: 
