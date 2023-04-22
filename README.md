@@ -55,9 +55,7 @@ This step calculates cross-correlation functions of the envelope between all sta
 ### Step 3: Measure & optimize time- and amplitude- difference
 
 This step first measure the arrival time- and amplitude-difference between station pairs and then optimize them to obtain staiton-specific relative measurements.
-See Section 3.1 in [Akuhara et al. (2023, EarthArXiv)](https://doi.org/10.31223/X59S9J).
 
-#### Usage
 ```
  mpirun -np [process number] hypo_tremor_measure [parameter file]
 ```
@@ -65,7 +63,6 @@ See Section 3.1 in [Akuhara et al. (2023, EarthArXiv)](https://doi.org/10.31223/
 ### Step 4: Select good-quality events
 
 This step selects events with good-quality on the basis of the rough estimates of propagation speed and attenuation strengths of a seismic wave.
-See Section 3.2 in [Akuhara et al. (2023, EarthArXiv)](https://doi.org/10.31223/X59S9J).
 
 #### Usage
 ```
@@ -75,7 +72,6 @@ See Section 3.2 in [Akuhara et al. (2023, EarthArXiv)](https://doi.org/10.31223/
 ### Step 5: Perform MCMC 
 
 This step peforms Bayesian inversion using Markov-chain Monte Carlo (MCMC) method to obtain the posterior probability of source locations.
-See Section 3.3 in [Akuhara et al. (2023, EarthArXiv)](https://doi.org/10.31223/X59S9J).
 
 #### Usage
 ```
