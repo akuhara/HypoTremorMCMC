@@ -1,4 +1,4 @@
-# HypoTremorMCMC
+# HypoTremorMCMC (Beta version)
 
 __Locationg Tectonic Tremors with Uncertainty Estimates__
 
@@ -9,8 +9,10 @@ Copyright (C) 2023 __Takeshi Akuhara__[![ORCID](https://orcid.org/sites/default/
 This repository contains software written in modern fortran (F2008 style) for 
 determining the source locations tremor signals without clear phase onsets. The details of the method is provided in a preprint 
 [(Akuhara et al. 2023, EarthArXiv)](https://doi.org/10.31223/X59S9J).
- 
 
+
+ 
+## __NOTE: This software is currently under development and the documentation may not be complete at this time. Any changes to the sorce code or documentation may occur without prior notification.__
 
 ## Installation 
 
