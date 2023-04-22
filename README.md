@@ -82,10 +82,6 @@ See Section 3.3 in [Akuhara et al. (2023, EarthArXiv)](https://doi.org/10.31223/
  mpirun -np [process number] hypo_tremor_mcmc [parameter file]
 ```
 
-#### Usage
-```
- mpirun -np [process number] hypo_tremor_select [parameter file]
-```
 
 ## Contributing
 
