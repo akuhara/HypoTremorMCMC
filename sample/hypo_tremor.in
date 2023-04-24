@@ -19,8 +19,9 @@ station_file = station_xy.list
 # data_dir        : Directory containing SAC data files
 #
 #
-# time_id_file    : Input file listing time identifiers appearing the file name of 
-#                   SAC data files in chronological order
+# time_id_file    : Name of the input file containing a list of time identifiers 
+#                   in chronological order, which appear in the file names of SAC
+#                   data files
 #
 # cmp1            : Name of the first horizontal component specified in the
 #                   filename of SAC data files
@@ -30,7 +31,7 @@ station_file = station_xy.list
 #
 # filename_format : Filename convention for SAC data files constituted of
 #                   the three variables ($STA, $ID, and $CMP, representing, 
-#                   station name, file ID, and component, 
+#                   station name, time ID, and component, 
 #                   respectively), the concatenation operator (+), and 
 #                   arbitral character strings
 #
