@@ -42,7 +42,7 @@ module cls_param
      double precision, allocatable :: sta_amp_fac(:,:)
 
      ! Data ID
-     character(line_max) :: data_id_file
+     character(line_max) :: time_id_file
      integer :: n_data_id
      character(line_max), allocatable :: data_id(:)
      
@@ -107,7 +107,7 @@ module cls_param
      character(line_max) :: from_where
      character(line_max), dimension(7) :: param_convert = &
           & [ character(line_max) :: &
-          & "station_file", "data_dir", "data_id_file", &
+          & "station_file", "data_dir", "time_id_file", &
           & "cmp1", "cmp2", "filename_format", "t_win_conv" ]
      character(line_max), dimension(3) :: param_correlate = &
           & [ character(line_max) :: &
@@ -135,7 +135,7 @@ module cls_param
      procedure :: read_param_file => param_read_param_file
      procedure :: check_params => param_check_params
      procedure :: read_station_file => param_read_station_file
-     procedure :: read_data_id_file => param_read_data_id_file
+     procedure :: read_time_id_file => param_read_time_id_file
      procedure :: set_value  => param_set_value
      procedure :: get_n_cmps => param_get_n_cmps
      procedure :: get_n_stations => param_get_n_stations
@@ -235,8 +235,8 @@ contains
     if (from_where == "convert") then
        ! Read data ID file
        if (self%verb) &
-            & write(*,'(3A)')"<< Reading ", trim(self%data_id_file), " >>"
-       call self%read_data_id_file()
+            & write(*,'(3A)')"<< Reading ", trim(self%time_id_file), " >>"
+       call self%read_time_id_file()
        if (self%verb) write(*,*)
     end if
 
@@ -387,13 +387,13 @@ contains
 
   !---------------------------------------------------------------------
 
-  subroutine param_read_data_id_file(self)
+  subroutine param_read_time_id_file(self)
     class(param), intent(inout) :: self
     integer :: io, ierr, n_id, i
     
-    open(newunit=io, file=self%data_id_file, status="old", iostat=ierr)
+    open(newunit=io, file=self%time_id_file, status="old", iostat=ierr)
     if (ierr /= 0) then
-       write(0,*)"ERROR: cannot open", trim(self%data_id_file)
+       write(0,*)"ERROR: cannot open", trim(self%time_id_file)
        stop
     end if
     
@@ -418,7 +418,7 @@ contains
     close(io)
     
     return 
-  end subroutine param_read_data_id_file
+  end subroutine param_read_time_id_file
 
   !---------------------------------------------------------------------  
   
@@ -432,8 +432,8 @@ contains
 
     if (name == "station_file") then
        self%station_file = val
-    else if (name == "data_id_file") then
-       self%data_id_file = val
+    else if (name == "time_id_file") then
+       self%time_id_file = val
     else if (name == "cmp1") then
        self%cmps(1) = val
     else if (name == "cmp2") then

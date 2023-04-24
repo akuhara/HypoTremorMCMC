@@ -19,8 +19,8 @@ station_file = station_xy.list
 # data_dir        : Directory containing SAC data files
 #
 #
-# data_id_file    : Input file listing an identifying part of each SAC file
-#                   in chronological order
+# time_id_file    : Input file listing time identifiers appearing the file name of 
+#                   SAC data files in chronological order
 #
 # cmp1            : Name of the first horizontal component specified in the
 #                   filename of SAC data files
@@ -40,7 +40,7 @@ station_file = station_xy.list
 
 data_dir        = ./data
 
-data_id_file    = dataID_2d.list
+time_id_file    = dataID_2d.list
 
 cmp1            = EH1
 
