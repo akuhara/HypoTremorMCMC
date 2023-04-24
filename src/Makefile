@@ -109,7 +109,7 @@ $(HYPO_TREMOR_MCMC): $(OBJS_HYPO_TREMOR_MCMC)
 clean:
 	rm -f *.mod $(BINDIR)/* *.o
 
-%.o: %.f08
+%.o: %.f90
 	$(FC) $(FFLAGS) $(COV) $(FFTW) -c $< -o $*.o 
-%.mod: %.f08 %.o
+%.mod: %.f90 %.o
 	@:
