@@ -1,0 +1,12 @@
+# .readthedocs.yml
+# Read the Dcos configuration file
+
+version: 2
+  
+python:
+  version: 3.7
+  install:
+    - requirements: docs/requirements.txt
+
+mkdocs:
+  configuration: mkdocs.yml
