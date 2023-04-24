@@ -56,6 +56,7 @@ This step calculates cross-correlation functions of the envelope between all sta
 
 This step first measure the arrival time- and amplitude-difference between station pairs and then optimize them to obtain staiton-specific relative measurements.
 
+#### Usage
 ```
  mpirun -np [process number] hypo_tremor_measure [parameter file]
 ```
