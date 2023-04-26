@@ -105,7 +105,7 @@ double precision, allocatable :: vs_all(:), b_all(:), t0_all(:), a0_all(:)
      end if
      
      do i = 1, n_win
-        write(io2,*)win_id(i), vs_all(i), b_all(i), t0(i), a0(i)
+        write(io2,*)win_id(i), vs_all(i), b_all(i), t0_all(i), a0_all(i)
         if (   vs_all(i) >= para%get_vs_min() .and. &
              & vs_all(i) <= para%get_vs_max() .and. &
              & b_all(i)  >= para%get_b_min() .and. &
