@@ -1,7 +1,10 @@
 site_name: HypoTremorMCMC
 
-nav: 
-  - index.md
+nav:
+  - Step-by-step Guide:
+    - hypo_tremor_convert.md
+  - Data preparation:
+    - parameter_file.md
 
 theme: readthedocs
 
