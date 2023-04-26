@@ -123,11 +123,11 @@ module cls_param
           & "station_file", "n_iter", "n_burn", "n_interval", &
           & "n_chains", "n_cool", "temp_high", "prior_z", &
           & "prior_width_z", "prior_width_xy", "prior_vs", &
-          & "prior_width_vs", "prior_qs", "prior_wdith_qs", &
+          & "prior_width_vs", "prior_qs", "prior_width_qs", &
           & "prior_width_t_corr", "prior_width_a_corr", &
           & "step_size_z", "step_size_xy", "step_size_vs", &
           & "step_size_qs", "step_size_t_corr", "step_size_a_corr", &
-          & "solve_vs", "solve_t_corr", "slove_qs", "solve_a_corr", &
+          & "solve_vs", "solve_t_corr", "solve_qs", "solve_a_corr", &
           & "use_time", "use_amp"]
           
 
