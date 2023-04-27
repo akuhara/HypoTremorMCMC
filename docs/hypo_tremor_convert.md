@@ -31,3 +31,8 @@ Filename convention for SAC data files constituted of the three reserved variabl
 ### t_win_conv 
 Length of a time window to which the envelope transformation is applied [sec]
 
+## Tips
+
+![files](./img/files_convert.png)
+
+
