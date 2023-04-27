@@ -33,6 +33,6 @@ Length of a time window to which the envelope transformation is applied [sec]
 
 ## Tips
 
-![files](./img/files_convert.png)
+![files](../img/files_convert.png)
 
 
