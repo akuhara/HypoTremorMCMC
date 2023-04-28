@@ -17,3 +17,6 @@ It is important to note that these values must be carefully determined for each 
 | --------- | ----------- | ------- | ------- | --------------------------- | ---------------------------------------- | ---------------------------------------- | 
 |           | station name| X in km | Y in km | Z in km (positive downward) | Sensitivity of 1st component (m/s/count) | Sensitivity of 2nd component (m/s/count) | 
 
+Typically, the locations of stations are specified using geographical coordinates, such as latitude and longitude. 
+However, this package requires station locations to be expressed in the X-Y-Z coordinate system. 
+If station locations are provided in geographical coordinates, they can be converted to the X-Y-Z coordinate system using the appropriate transformations, such as the GMT command `mapproject`.
