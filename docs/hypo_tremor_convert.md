@@ -37,6 +37,6 @@ Length of a time window to which the envelope transformation is applied [sec]
 
 To structure your input files as depicted in the figure below, update the parameter file with the following settings: set the filename_format parameter to "$STA + / + $ID + . + $CMP"; set the data_dir parameter to "SAC_data"; and specify cmp1 as "BHE" and cmp2 as "BHN".
 
-![files](../img/files_convert.png)
+![files](./img/files_convert.png)
 
 
