@@ -5,6 +5,7 @@ nav:
     - hypo_tremor_convert.md
   - Data preparation:
     - parameter_file.md
+    - station_file.md
 
 theme: readthedocs
 
