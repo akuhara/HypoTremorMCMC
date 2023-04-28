@@ -29,7 +29,7 @@ Name of the second horizontal component specified in the filename of SAC data fi
 Filename convention for SAC data files constituted of the three reserved variables ($STA, $ID, and $CMP, representing station name, time ID, and component, respectively), the concatenation operator (+), and arbitral character strings.
 
 ### t_win_conv 
-Length of a time window to which the envelope transformation is applied [sec]
+Length of a time window segment to which the envelope transformation is applied [sec]
 
 ## Input file configuration
 
