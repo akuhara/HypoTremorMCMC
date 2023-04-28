@@ -53,7 +53,7 @@ After running the program successfully, you will have `<station name>.merged.env
 
 ```
 gnuplot
-plot "<station name>.merged.env" binary form=%double%double" rec=(-1) endian=little with lines
+plot "<station name>.merged.env" binary format="%double%double" rec=(-1) endian=little with lines
 ```
 Note that the value for `endian` can be `big`, depending on your environment. 
 
