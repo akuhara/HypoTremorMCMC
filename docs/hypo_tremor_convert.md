@@ -47,7 +47,15 @@ In addition, you will need to provide a station file ("station.txt" in the figur
 
 You will also need a file ("time_id.txt" in the figure above) that lists the time identifiers (ID) for each of your SAC data files. The time ID typically follows the format of yymmdd.HHMMSS, where yy represents the year, mm represents the month, dd represents the day, HH represents the hour, MM represents the minute, and SS represents the second. However, it is not necessary for the IDs to explicitly indicate time information. The program will read the SAC files that have the ID specified in the list, in the order specified by the list, and concatenate them to create a single time series. Specifically, it uses the _filename_format_ parameter specified in the parameter file to find the corresponding SAC files.
 
+## Output envelope
 
+After running the program successfully, you will have `<station name>.merged.env` files in the current directory. These files have a binary format and contain a series of time-amplitude doublets representing a smoothed envelope. To read and visualize these files, the simplest way is to use `gnuplot` as shown below:
+
+```
+gnuplot
+plot "<station name>.merged.env" binary form=%double%double" rec=(-1) endian=little with lines
+```
+Note that the value for `endian` can be `big`, depending on your environment. 
 
 
 
