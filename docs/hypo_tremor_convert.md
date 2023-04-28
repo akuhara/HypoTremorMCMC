@@ -31,12 +31,24 @@ Filename convention for SAC data files constituted of the three reserved variabl
 ### t_win_conv 
 Length of a time window to which the envelope transformation is applied [sec]
 
-## Tips
+## Input file configuration
 
-### Input file configuration
-
-To structure your input files as depicted in the figure below, update the parameter file with the following settings: set the filename_format parameter to "$STA + / + $ID + . + $CMP"; set the data_dir parameter to "SAC_data"; and specify cmp1 as "BHE" and cmp2 as "BHN".
+To structure your input SAC data files as shown in the figure below, you can update the [parameter file](./parameter_file.md) using the following settings:
+* Set the _filename_format_ parameter to "$STA + / + $ID + . + $CMP"
+* Set the _data_dir_ parameter to "SAC_data"
+* Specify _cmp1_ as "BHE" and _cmp2_ as "BHN"
+The path to the parameter file must be provided as the first command line argument. In the case of the figure below, where "hypo_tremor.in" is the parameter file, the program should be executed as:
+ 
+`mpirun -np 20 hypo_tremor_convert hypo_tremor.in`.
 
 ![files](./img/files_convert.png)
+
+In addition, you will need to provide a station file ("station.txt" in the figure above) and specify its path in the parameter file as _station_file_. The station file contains information on the location of the stations in the X-Y-Z coordinate system and the sensitivity of the sensors. For detailed instructions on how to create this file, please refer to [this guide (station file)](statiln_file.md).
+
+You will also need a file ("time_id.txt" in the figure above) that lists the time identifiers (ID) for each of your SAC data files. The time ID typically follows the format of yymmdd.HHMMSS, where yy represents the year, mm represents the month, dd represents the day, HH represents the hour, MM represents the minute, and SS represents the second. However, it is not necessary for the IDs to explicitly indicate time information. The program will read the SAC files that have the ID specified in the list, in the order specified by the list, and concatenate them to create a single time series. Specifically, it uses the _filename_format_ parameter specified in the parameter file to find the corresponding SAC files.
+
+
+
+
 
 
