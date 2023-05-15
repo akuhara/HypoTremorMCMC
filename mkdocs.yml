@@ -6,6 +6,7 @@ nav:
     - hypo_tremor_correlate.md
   - Data preparation:
     - parameter_file.md
+    - station_file.md
 
 theme: readthedocs
 
