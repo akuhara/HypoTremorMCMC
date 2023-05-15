@@ -16,70 +16,57 @@ determining the source locations tremor signals without clear phase onsets. The 
 
 ## Installation 
 
-To install the software, you need to have a Fortran compiler, OpenMPI, and FFTW installed on your system. 
+To install the software, you need to have a Fortran compiler, OpenMPI, and FFTW installed on your system.  To get started, clone the repository to your local machine by running:
 
-
-1. Clone the repository to your local machine:
 ```
 git clone https://github.com/akuhara/HypoTremorMCMC.git 
 ```
 
-2. Comple the program by running the following command in the `src` directory of the repository: 
+Then, compile the program by running the following command in the src directory of the repository:
 
 ```
 cd dir
 make
 ``` 
-## How It Works
 
-Follow the five steps below to estimate tremor locations.
+It is important to note that you may need to edit the Makefile in accordance with your environment.
 
-### Step 1: Envelope conversion
+## Usage
 
-This step reads continuous seismic records of two horizontal components from SAC format files and convert them into a smoothed envelope. 
+To estimate tremor locations, follow these five steps:
 
-#### Usage
+1. __Envelope Conversion:__ Read continuous seismic records of two horizontal components from SAC format files and convert them into a smoothed envelope.
+
 ```
  mpirun -np [process number] hypo_tremor_convert [parameter file]
 ```
 
-### Step 2: Calculate cross-correlation
+2. __Calculate Cross-correlation:__ Calculate cross-correlation functions of the envelope between all station pairs.
 
-This step calculates cross-correlation functions of the envelope between all station pairs. 
-
-#### Usage
 ```
  mpirun -np [process number] hypo_tremor_correlate [parameter file]
 ```
 
-### Step 3: Measure & optimize time- and amplitude- difference
+3. __Measure and Optimize Time- and Amplitude-difference:__ Measure the arrival time- and amplitude-difference between station pairs and then optimize them to obtain station-specific relative measurements.
 
-This step first measure the arrival time- and amplitude-difference between station pairs and then optimize them to obtain staiton-specific relative measurements.
-
-#### Usage
 ```
  mpirun -np [process number] hypo_tremor_measure [parameter file]
 ```
 
-### Step 4: Select good-quality events
+4. __Select Good-quality Events:__ Select events with good-quality based on rough estimates of propagation speed and attenuation strengths of a seismic wave.
 
-This step selects events with good-quality on the basis of the rough estimates of propagation speed and attenuation strengths of a seismic wave.
-
-#### Usage
 ```
  mpirun -np [process number] hypo_tremor_select [parameter file]
 ```
 
-### Step 5: Perform MCMC 
+5. __Perform MCMC:__ Perform Bayesian inversion using Markov-chain Monte Carlo (MCMC) method to obtain the posterior probability of source locations.
 
-This step peforms Bayesian inversion using Markov-chain Monte Carlo (MCMC) method to obtain the posterior probability of source locations.
-
-#### Usage
 ```
  mpirun -np [process number] hypo_tremor_mcmc [parameter file]
 ```
 
+You can find detailed instructions on how to use this software by visiting the [online documentation](https://hypotremormcmc.readthedocs.io/en/latest/).
 
 ## Contributing
 
-Contributions to the software are welcome. Please open an issue or submit a pull request on the GitHub repository.
+Contributions to the software are welcome. Please [open an issue](https://github.com/akuhara/HypoTremorMCMC/issues) or submit a pull request on the [GitHub repository](https://github.com/akuhara/HypoTremorMCMC).
