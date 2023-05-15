@@ -1,8 +1,9 @@
 site_name: HypoTremorMCMC
 
 nav:
-  - Step-by-step Guide:
+  - Usage:
     - hypo_tremor_convert.md
+    - hypo_tremor_correlate.md
   - Data preparation:
     - parameter_file.md
 
