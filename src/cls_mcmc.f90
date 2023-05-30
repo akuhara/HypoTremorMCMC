@@ -7,7 +7,14 @@ module cls_mcmc
   type mcmc 
      private
      integer :: n_events, n_sta
-     type(model) :: hypo, t_corr, vs, a_corr, qs
+
+     ! Model parameters
+     type(model) :: hypo
+     type(model) :: t_corr
+     type(model) :: vs
+     type(model) :: a_corr
+     type(model) :: qs
+     
      integer :: n_proposal_type = 5
      integer :: n_iter
 
@@ -31,6 +38,11 @@ module cls_mcmc
      procedure :: get_n_propose => mcmc_get_n_propose
      procedure :: get_n_accept => mcmc_get_n_accept
      procedure :: get_n_iter => mcmc_get_n_iter
+     procedure :: get_hypo => mcmc_get_hypo
+     procedure :: get_t_corr => mcmc_get_t_corr
+     procedure :: get_vs => mcmc_get_vs
+     procedure :: get_a_corr => mcmc_get_a_corr
+     procedure :: get_qs => mcmc_get_qs
      procedure :: write_out_hypo => mcmc_write_out_hypo
      procedure :: write_out_t_corr => mcmc_write_out_t_corr
      procedure :: write_out_vs => mcmc_write_out_vs
@@ -98,25 +110,28 @@ contains
   
   subroutine mcmc_propose_model(self, hypo_proposed, t_corr_proposed, &
        & vs_proposed, a_corr_proposed, qs_proposed, &
-       & log_prior_ratio, prior_ok)
+       & log_prior_ratio, prior_ok, evt_id)
     class(mcmc), intent(inout) :: self
     type(model), intent(out) :: hypo_proposed, t_corr_proposed, vs_proposed
     type(model), intent(out) :: a_corr_proposed, qs_proposed
     double precision, intent(out) :: log_prior_ratio
-    integer :: itype, id, icmp
+    integer, intent(out) :: evt_id
+    integer :: itype, icmp, id
     logical, intent(out) :: prior_ok
     double precision :: a_select
+    
 
     hypo_proposed   = self%hypo
     t_corr_proposed = self%t_corr
     vs_proposed     = self%vs
     a_corr_proposed = self%a_corr
     qs_proposed     = self%qs
-    
+
     a_select = rand_u()
 
+
     prior_ok = .true. 
-    
+    evt_id = -999
     if (a_select < self%p_vs) then
        ! Perturb Vs
        call vs_proposed%perturb(1, log_prior_ratio, prior_ok)
@@ -142,6 +157,7 @@ contains
        icmp = int(rand_u() * 3) 
        call hypo_proposed%perturb(3*id-icmp, log_prior_ratio, prior_ok)
        self%i_proposal_type = 5
+       evt_id = id
     end if
     
     ! Count proposal
@@ -273,6 +289,62 @@ contains
   end function mcmc_get_n_iter
   
   !---------------------------------------------------------------------
+  
+  function mcmc_get_hypo(self) result(hypo)
+    class(mcmc), intent(in) :: self
+    type(model) :: hypo
+    
+    hypo = self%hypo
+    
+    return 
+  end function mcmc_get_hypo
+
+  !---------------------------------------------------------------------
+
+  function mcmc_get_t_corr(self) result(t_corr)
+    class(mcmc), intent(in) :: self
+    type(model) :: t_corr
+    
+    t_corr = self%t_corr
+    
+    return 
+  end function mcmc_get_t_corr
+
+  !---------------------------------------------------------------------
+
+  function mcmc_get_vs(self) result(vs)
+    class(mcmc), intent(in) :: self
+    type(model) :: vs
+    
+    vs = self%vs
+    
+    return 
+  end function mcmc_get_vs
+
+  !---------------------------------------------------------------------
+
+  function mcmc_get_a_corr(self) result(a_corr)
+    class(mcmc), intent(in) :: self
+    type(model) :: a_corr
+    
+    a_corr = self%a_corr
+    
+    return 
+  end function mcmc_get_a_corr
+
+  !---------------------------------------------------------------------
+
+  function mcmc_get_qs(self) result(qs)
+    class(mcmc), intent(in) :: self
+    type(model) :: qs
+    
+    qs = self%qs
+    
+    return 
+  end function mcmc_get_qs
+
+  !---------------------------------------------------------------------
+    
   
   function mcmc_write_out_hypo(self) result(out)
     class(mcmc), intent(inout) :: self

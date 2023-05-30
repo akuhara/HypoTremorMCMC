@@ -21,8 +21,12 @@ module cls_forward
      
    contains
      procedure :: calc_log_likelihood => forward_calc_log_likelihood
+     procedure :: partially_update_log_likelihood => &
+          & forward_partially_update_log_likelihood
      procedure :: calc_travel_time => forward_calc_travel_time
      procedure :: calc_amp => forward_calc_amp
+     procedure :: calc_travel_time_single => forward_calc_travel_time_single
+     procedure :: calc_amp_single => forward_calc_amp_single
   end type forward
 
   interface forward
@@ -132,6 +136,47 @@ contains
     
     return 
   end subroutine forward_calc_travel_time
+
+  !------------------------------------------------------------------------------
+
+  subroutine forward_calc_travel_time_single(self, evt_id, hypo, t_corr, vs, t_syn)
+    class(forward), intent(inout) :: self
+    integer, intent(in) :: evt_id
+    type(model), intent(in) :: hypo, t_corr, vs
+    double precision, intent(out) :: t_syn(self%n_sta)
+    integer :: j
+    double precision :: x, y, z, beta, tc, t_mean
+    
+    beta = vs%get_x(1)
+    x = hypo%get_x(3*evt_id-2)
+    y = hypo%get_x(3*evt_id-1)
+    z = hypo%get_x(3*evt_id)
+    
+    do j = 1, self%n_sta
+       tc = t_corr%get_x(j)
+       t_syn(j) = sqrt((x - self%sta_x(j))**2 &
+            &          + (y - self%sta_y(j))**2 &
+            &          + (z - self%sta_z(j))**2) &
+            & / beta - tc
+       
+    end do
+    
+    
+    ! Demean
+    t_mean = &
+         & sum(                                    &
+         &      self%t_precision(1:self%n_sta, evt_id) * &
+         &      (t_syn(1:self%n_sta) -      &
+         &       self%t_obs(1:self%n_sta, evt_id))            &
+         &     )                                   &
+         & / sum(self%t_precision(1:self%n_sta, evt_id))
+    t_syn(1:self%n_sta) = t_syn(1:self%n_sta) - t_mean
+    
+    
+    
+    
+    return 
+  end subroutine forward_calc_travel_time_single
     
   !------------------------------------------------------------------------------
 
@@ -177,6 +222,48 @@ contains
   end subroutine forward_calc_amp
     
   !------------------------------------------------------------------------------
+
+  subroutine forward_calc_amp_single(self, evt_id, hypo, a_corr, qs, vs, a_syn)
+    class(forward), intent(inout) :: self
+    integer, intent(in) :: evt_id
+    type(model), intent(in) :: hypo, a_corr, qs, vs
+    double precision, intent(out) :: a_syn(self%n_sta)
+    integer :: j
+    double precision :: x, y, z, q, ac, a_mean, beta, d
+    double precision, parameter :: pi = acos(-1.d0)
+    double precision, parameter :: freq = 5.d0
+    
+    q = qs%get_x(1)
+    beta = vs%get_x(1)
+    x = hypo%get_x(3*evt_id-2)
+    y = hypo%get_x(3*evt_id-1)
+    z = hypo%get_x(3*evt_id)
+    
+    do j = 1, self%n_sta
+       ac = a_corr%get_x(j)
+       d = sqrt((x - self%sta_x(j))**2 &
+            & + (y - self%sta_y(j))**2 &
+            & + (z - self%sta_z(j))**2)
+       a_syn(j) = - d * pi * freq / ( q * beta) - log(d) - ac
+    end do
+    
+    
+    ! Demean
+    a_mean = &
+         & sum(                                    &
+         &      self%a_precision(1:self%n_sta, evt_id) * &
+         &      (a_syn(1:self%n_sta) -      &
+         &       self%a_obs(1:self%n_sta, evt_id))            &
+         &     )                                   &
+         & / sum(self%a_precision(1:self%n_sta, evt_id))
+    a_syn(1:self%n_sta) = a_syn(1:self%n_sta) - a_mean
+
+    
+    
+    return 
+  end subroutine forward_calc_amp_single
+    
+  !------------------------------------------------------------------------------
   
   subroutine forward_calc_log_likelihood(self, hypo, t_corr, vs, a_corr, qs, &
        & log_likelihood)
@@ -217,5 +304,64 @@ contains
 
   !------------------------------------------------------------------------------
 
+  subroutine forward_partially_update_log_likelihood(self, evt_id, hypo_old, &
+       & log_likelihood_old, hypo, t_corr, vs, a_corr, qs, &
+       & log_likelihood)
+    class(forward), intent(inout) :: self
+    integer, intent(in) :: evt_id
+    type(model), intent(in) :: hypo_old, hypo, t_corr, vs
+    type(model), intent(in) :: a_corr, qs
+    double precision, intent(in) :: log_likelihood_old
+    double precision, intent(out) :: log_likelihood
+    double precision :: t_syn(self%n_sta), a_syn(self%n_sta)
+    integer :: j
+
+    log_likelihood = log_likelihood_old
+    if (self%use_time) then
+       call self%calc_travel_time_single(evt_id, &
+            & hypo_old, t_corr, vs, t_syn)
+       do j = 1, self%n_sta 
+          log_likelihood = log_likelihood + &
+               & (self%t_obs(j, evt_id) - t_syn(j))**2 / &
+               & (2.d0 * self%t_stdv(j, evt_id)**2) + log_2pi_half &
+               &  + self%log_t_stdv(j,evt_id)
+       end do
+       
+       call self%calc_travel_time_single(evt_id, &
+            & hypo, t_corr, vs, t_syn)
+       do j = 1, self%n_sta 
+          log_likelihood = log_likelihood - &
+               & (self%t_obs(j, evt_id) - t_syn(j))**2 / &
+               & (2.d0 * self%t_stdv(j, evt_id)**2) - log_2pi_half &
+               &  - self%log_t_stdv(j,evt_id)
+       end do
+    end if
+
+    if (self%use_amp) then
+       call self%calc_amp_single(evt_id, &
+            & hypo_old, a_corr, qs, vs, a_syn)
+       do j = 1, self%n_sta 
+          log_likelihood = log_likelihood + &
+               & (self%a_obs(j, evt_id) - a_syn(j))**2 / &
+               & (2.d0 * self%a_stdv(j, evt_id)**2) + log_2pi_half &
+               &  + self%log_a_stdv(j,evt_id)
+       end do
+       
+       call self%calc_amp_single(evt_id, &
+            & hypo, a_corr, qs, vs, a_syn)
+       do j = 1, self%n_sta 
+          log_likelihood = log_likelihood - &
+               & (self%a_obs(j, evt_id) - a_syn(j))**2 / &
+               & (2.d0 * self%a_stdv(j, evt_id)**2) - log_2pi_half &
+               &  - self%log_a_stdv(j,evt_id)
+       end do
+    end if
+    
+
+    return 
+  end subroutine forward_partially_update_log_likelihood
+    
+  
+  !------------------------------------------------------------------------------
  
 end module cls_forward
