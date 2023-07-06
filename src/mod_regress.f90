@@ -37,4 +37,24 @@ contains
     return 
   end subroutine linear_regression
   
+  subroutine weighted_corr(n, x, y, w, cc)
+    integer, intent(in) :: n
+    double precision, intent(in) :: x(n), y(n), w(n)
+    double precision, intent(out) :: cc
+    double precision :: mean_x, mean_y, sum_w, s_xx, s_yy, s_xy
+    
+    
+    sum_w = sum(w(1:n))
+    mean_x = sum(x(1:n) * w(1:n)) / sum_w
+    mean_y = sum(y(1:n) * w(1:n)) / sum_w
+    
+    s_xx = sum((x(1:n)-mean_x)**2)
+    s_yy = sum((y(1:n)-mean_y)**2)
+    s_xy = sum((x(1:n)-mean_x) * (y(1:n)-mean_y))
+
+    cc = s_xy / sqrt(s_xx * s_yy)
+    
+    return 
+  end subroutine weighted_corr
+
 end module mod_regress

@@ -8,8 +8,9 @@ program main
   integer :: n_args, ierr, n_procs, rank, io, ios, n_win, io2, io3
   integer, allocatable :: win_id(:)
   double precision, allocatable :: dummy(:)
-  double precision, allocatable :: vs(:), b(:), t0(:), a0(:)
-double precision, allocatable :: vs_all(:), b_all(:), t0_all(:), a0_all(:)
+  double precision, allocatable :: vs(:), b(:), t0(:), a0(:), cc_t(:), cc_a(:)
+  double precision, allocatable :: vs_all(:), b_all(:), t0_all(:), a0_all(:)
+  double precision, allocatable :: cc_t_all(:), cc_a_all(:)
   character(line_max) :: param_file
   type(param) :: para
   type(selector) :: slct
@@ -61,8 +62,11 @@ double precision, allocatable :: vs_all(:), b_all(:), t0_all(:), a0_all(:)
 
   ! Allocate arrays for results
   allocate(vs(n_win), b(n_win), t0(n_win), a0(n_win))
+  allocate(cc_t(n_win), cc_a(n_win))
   allocate(vs_all(n_win), b_all(n_win))
   allocate(t0_all(n_win), a0_all(n_win))
+  allocate(cc_t_all(n_win), cc_a_all(n_win))
+
   vs(:)  = 0.d0
   b(:)   = 0.d0
   t0(:) = 0.d0
@@ -79,7 +83,8 @@ double precision, allocatable :: vs_all(:), b_all(:), t0_all(:), a0_all(:)
        & )
   
   do i = i1, i2
-     call slct%eval_wave_propagation(win_id(i), vs(i), t0(i), b(i), a0(i))
+     call slct%eval_wave_propagation(win_id(i), vs(i), t0(i), b(i), a0(i), &
+          & cc_t(i), cc_a(i))
   end do
   
   call mpi_reduce(vs(1:n_win), vs_all(1:n_win), n_win, MPI_DOUBLE_PRECISION, &
@@ -89,6 +94,10 @@ double precision, allocatable :: vs_all(:), b_all(:), t0_all(:), a0_all(:)
   call mpi_reduce(b(1:n_win), b_all(1:n_win), n_win, MPI_DOUBLE_PRECISION, &
        & MPI_SUM, 0, MPI_COMM_WORLD, ierr)
   call mpi_reduce(a0(1:n_win), a0_all(1:n_win), n_win, MPI_DOUBLE_PRECISION, &
+       & MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+  call mpi_reduce(cc_t(1:n_win), cc_t_all(1:n_win), n_win, MPI_DOUBLE_PRECISION, &
+       & MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+  call mpi_reduce(cc_a(1:n_win), cc_a_all(1:n_win), n_win, MPI_DOUBLE_PRECISION, &
        & MPI_SUM, 0, MPI_COMM_WORLD, ierr)
 
   if (rank == 0) then
@@ -105,7 +114,8 @@ double precision, allocatable :: vs_all(:), b_all(:), t0_all(:), a0_all(:)
      end if
      
      do i = 1, n_win
-        write(io2,*)win_id(i), vs_all(i), b_all(i), t0_all(i), a0_all(i)
+        write(io2,*)win_id(i), vs_all(i), b_all(i), t0_all(i), a0_all(i), &
+             & cc_t_all(i), cc_a_all(i)
         if (   vs_all(i) >= para%get_vs_min() .and. &
              & vs_all(i) <= para%get_vs_max() .and. &
              & b_all(i)  >= para%get_b_min() .and. &

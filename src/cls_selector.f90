@@ -1,6 +1,6 @@
 module cls_selector
   use cls_line_text, only: line_max
-  use mod_regress, only: linear_regression
+  use mod_regress, only: linear_regression, weighted_corr
   implicit none
   
   type selector
@@ -72,14 +72,16 @@ module cls_selector
      
      !------------------------------------------------------------------------
      
-     subroutine selector_eval_wave_propagation(self, id, vs, t0, b, a0)
+     subroutine selector_eval_wave_propagation(self, id, vs, t0, b, a0, &
+          & cc_t, cc_a)
        class(selector), intent(inout) :: self
        integer, intent(in) :: id
-       double precision, intent(out) :: vs, b, t0, a0
+       double precision, intent(out) :: vs, b, t0, a0, cc_t, cc_a
        integer :: ios, io, i, io2
        integer :: i_sta_nearest(1)
        character(line_max) :: opt_file, out_file
-       double precision :: t(self%n_sta), a(self%n_sta), w(self%n_sta)
+       double precision :: t(self%n_sta), a(self%n_sta)
+       double precision :: w_t(self%n_sta), w_a(self%n_sta)
        double precision :: t_err(self%n_sta), a_err(self%n_sta)
        double precision :: dummy1, dummy2, dummy3
        double precision :: slope, intercept, res
@@ -106,19 +108,25 @@ module cls_selector
           write(io2, *)self%d(i,i_sta_nearest(1)), t(i), t_err(i), a(i), a_err(i)
        end do
        close(io2)
+
        ! Regress
-       
-       w(1:self%n_sta) = 1.d0 / t_err(1:self%n_sta)**2
+       w_t(1:self%n_sta) = 1.d0 / t_err(1:self%n_sta)**2
        call linear_regression(self%n_sta, self%d(:, i_sta_nearest(1)), &
-            & t,  w, slope, intercept, res)
+            & t,  w_t, slope, intercept, res)
        vs = 1.0 / slope
        t0 = intercept
 
-       w(1:self%n_sta) = 1.d0 / a_err(1:self%n_sta)**2
+       w_a(1:self%n_sta) = 1.d0 / a_err(1:self%n_sta)**2
        call linear_regression(self%n_sta, self%d(:, i_sta_nearest(1)), &
-            & a,  w, slope, intercept, res)
+            & a,  w_a, slope, intercept, res)
        b = -1.0 * slope
        a0 = intercept
+
+       ! Correlation coefficient
+       call weighted_corr(self%n_sta, self%d(:, i_sta_nearest(1)), &
+            & t, w_t, cc_t)
+       call weighted_corr(self%n_sta, self%d(:, i_sta_nearest(1)), &
+            & a, w_a, cc_a)
 
        return 
      end subroutine selector_eval_wave_propagation
