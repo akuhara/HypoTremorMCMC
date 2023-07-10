@@ -32,6 +32,13 @@ program hypo_tremor_measure
   ! Read parameter file
   para = param(param_file, verb=verb, from_where="measure")
   call mpi_barrier(MPI_COMM_WORLD, ierr)
+  
+  ! Check if MPI process number is as intended
+  if (verb .and. n_procs /= para%get_n_procs()) then
+     write(*,*) "ERROR: n_procs in parameter file must be " // &
+          & "equal to that is given in the command line"
+     call mpi_abort(MPI_COMM_WORLD, MPI_ERR_OTHER, ierr)
+  end if
 
   ! Time- and amplitude-difference optimization
   !  Parallelized inside

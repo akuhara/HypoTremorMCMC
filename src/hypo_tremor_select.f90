@@ -38,6 +38,13 @@ program main
   para = param(param_file, verb=verb, from_where="select")
   call mpi_barrier(MPI_COMM_WORLD, ierr)
 
+  ! Check if MPI process number is as intended
+  if (verb .and. n_procs /= para%get_n_procs()) then
+     write(*,*) "ERROR: n_procs in parameter file must be " // &
+          & "equal to that is given in the command line"
+     call mpi_abort(MPI_COMM_WORLD, MPI_ERR_OTHER, ierr)
+  end if
+
   ! Read detected-window file
   open(newunit=io, file='detected_win.dat', status='old', iostat=ios)
   if (ios /= 0) then

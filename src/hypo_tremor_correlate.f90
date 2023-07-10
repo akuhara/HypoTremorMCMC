@@ -38,6 +38,13 @@ program main
   ! Read parameter file
   para = param(param_file, verb=verb, from_where="correlate")
   call mpi_barrier(MPI_COMM_WORLD, ierr)
+
+  ! Check if MPI process number is as intended
+  if (verb .and. n_procs /= para%get_n_procs()) then
+     write(*,*) "ERROR: n_procs in parameter file must be " // &
+          & "equal to that is given in the command line"
+     call mpi_abort(MPI_COMM_WORLD, MPI_ERR_OTHER, ierr)
+  end if
   
   ! Get task ID
   allocate(rank_in_charge(para%get_n_stations()))
