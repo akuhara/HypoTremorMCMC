@@ -24,7 +24,7 @@ module cls_statistics
      double precision, allocatable :: t_corr(:,:), a_corr(:,:)
      double precision, allocatable :: vs(:), qs(:)
      double precision, allocatable :: hypo_x(:,:), hypo_y(:,:), hypo_z(:,:)
-     
+    
      ! verb
      logical :: verb
 
@@ -35,7 +35,7 @@ module cls_statistics
      procedure :: read_hypo_file => statistics_read_hypo_file
      procedure :: read_corr_file => statistics_read_corr_file
      procedure :: read_v_file => statistics_read_v_file
-     
+     procedure :: remove_double_counts => statistics_remove_double_counts
      
   end type statistics
   
@@ -114,6 +114,103 @@ contains
   end function init_statistics
 
 
+  
+  !-----------------------------------------------------------------------
+  
+  subroutine statistics_remove_double_counts(self, hypo_file_in, hypo_file_out)
+    class(statistics), intent(inout) :: self
+    character(*), intent(in) :: hypo_file_in
+    character(*), intent(in) :: hypo_file_out
+    integer :: io_in, io_out, i, ios, ierr, j, ii
+    logical :: flag
+    integer :: id(self%n_evt)
+    integer, allocatable :: tmp_list(:), new_list(:)
+    double precision :: x(self%n_evt), x_low(self%n_evt), x_high(self%n_evt)
+    double precision :: y(self%n_evt), y_low(self%n_evt), y_high(self%n_evt)
+    double precision :: z(self%n_evt), z_low(self%n_evt), z_high(self%n_evt)
+    double precision :: x_min, x_max, y_min, y_max, z_min, z_max
+
+    ! Read from files
+    open(newunit=io_in, file=hypo_file_in, status='old', form='formatted', &
+         & iostat=ios)
+    if (ios /= 0) then
+       write(0,*) "ERROR: cannot open ", trim(hypo_file_in)
+       call mpi_abort(MPI_COMM_WORLD, MPI_ERR_OTHER, ierr)
+    end if
+    read(io_in,*) ! Skip header
+    do i = 1, self%n_evt
+       read(io_in,*)id(i), x(i), x_low(i), x_high(i), &
+            & y(i), y_low(i), y_high(i), &
+            & z(i), z_low(i), z_high(i)
+    end do
+    close(io_in)
+
+    ! Main
+
+    allocate(tmp_list(self%n_evt))
+    tmp_list = [(i, i=1, self%n_evt)]
+    do 
+       new_list = [tmp_list(1)]
+       flag = .false.
+       do j = 2, size(tmp_list)
+          i = tmp_list(j)
+          ii = tmp_list(j-1)
+          if (id(i) == id(ii) + 1) then
+             
+             x_min = max(x_low(i),  x_low(ii))
+             x_max = min(x_high(i), x_high(ii))
+             y_min = max(y_low(i),  y_low(ii))
+             y_max = min(y_high(i), y_high(ii))
+             z_min = max(z_low(i),  z_low(ii))
+             z_max = min(z_high(i), z_high(ii))
+             if (   x_min < x(i) .and. x_min < x(ii) .and. &
+                  & y_min < y(i) .and. y_min < y(ii) .and. &
+                  & z_min < z(i) .and. z_min < z(ii) .and. &
+                  & x_max > x(i) .and. x_max > x(ii) .and. &
+                  & y_max > y(i) .and. y_max > y(ii) .and. &
+                  & z_max > z(i) .and. z_max > z(ii)) then
+                flag = .true.
+             else
+                new_list = [new_list, i]
+             end if
+          else
+             new_list = [new_list, i]
+          end if
+       end do
+       write(*,*) size(tmp_list), " -> ", size(tmp_list), " Events"
+       call move_alloc(from=new_list, to=tmp_list)
+       
+       if (.not. flag) exit
+    end do
+
+    open(newunit=io_out, file=hypo_file_out, status='replace', form='formatted', &
+         & iostat=ios)
+    if (ios /= 0) then
+       write(0,*)"ERROR: cannot create ", trim(hypo_file_out)
+       call mpi_abort(MPI_COMM_WORLD, MPI_ERR_OTHER, ierr)
+    end if
+    
+    write(io_out, '(A)') "# window ID, x (50%), x (2.5%) " // &
+         & "x (97.5%), y (50%), y (2.5%), y (97.5%)" // &
+         & "z (50 %), z (2.5%), z (97.5%)"
+    
+    do j = 1, size(tmp_list)
+       i = tmp_list(j)
+       write(io_out,'(I9,9F13.6)')id(i), &
+            & x(i), x_low(i), x_high(i), &
+            & y(i), y_low(i), y_high(i), &
+            & z(i), z_low(i), z_high(i)
+    end do
+
+    
+    close(io_out)
+    
+    
+
+    
+  end subroutine statistics_remove_double_counts
+
+
   !-----------------------------------------------------------------------
   
   subroutine statistics_estimate_hypo(self)
@@ -141,14 +238,14 @@ contains
           call quick_sort(self%hypo_y(:,i_evt), 1, self%n_mod)
           call quick_sort(self%hypo_z(:,i_evt), 1, self%n_mod)
        end do
-
+       
        open(newunit=io, file=out_file, status="replace", form="formatted", &
             & iostat=ios)
        write(io, '(A)') "# window ID, x (50%), x (2.5%) " // &
             & "x (97.5%), y (50%), y (2.5%), y (97.5%)" // &
             & "z (50 %), z (2.5%), z (97.5%)"
        do i_evt = 1, self%n_evt
-          write(io,'(I9,9F11.6)')self%win_id(i_evt), &
+          write(io,'(I9,9F13.6)')self%win_id(i_evt), &
                & self%hypo_x(im, i_evt), &
                & self%hypo_x(il, i_evt), self%hypo_x(iu, i_evt), &
                & self%hypo_y(im, i_evt), &
@@ -158,6 +255,7 @@ contains
        end do
        close(io)
        
+       call self%remove_double_counts(out_file, 'hypo.stat.removed')
     end if
 
 
@@ -272,7 +370,7 @@ contains
        write(io, '(A)') "# station name, t_corr (50%), t_corr (2.5%) " // &
             & "t_corr (97.5%), a_corr (50%), a_corr (2.5%), a_corr (97.5%)" 
        do i_sta = 1, self%n_sta
-          write(io,'(A12,6F11.6)')trim(self%station_names(i_sta)), &
+          write(io,'(A12,6F13.6)')trim(self%station_names(i_sta)), &
                & self%t_corr(im, i_sta), &
                & self%t_corr(il, i_sta), self%t_corr(iu, i_sta), &
                & self%a_corr(im, i_sta), &
@@ -317,7 +415,7 @@ contains
             & iostat=ios)
        write(io, '(A)') "# Vs (50%), Vs (2.5%) " // &
             & "Vs (97.5%), Qs (50%), Qs (2.5%), Qs (97.5%)" 
-       write(io,'(6F11.6)') &
+       write(io,'(6F13.6)') &
             & self%vs(im), &
             & self%vs(il), self%vs(iu), &
             & self%qs(im), &
