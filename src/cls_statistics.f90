@@ -309,6 +309,7 @@ contains
           do i_rank = 1, self%n_procs - 1
              call mpi_recv(n_recv, 1, MPI_INTEGER, i_rank, 0, &
                   & MPI_COMM_WORLD, ista, ierr)
+             if (n_recv <= 0) cycle
              call mpi_recv(hypo_x_all(j_mod+1, i_evt), n_recv, &
                   & MPI_DOUBLE_PRECISION, &
                   & i_rank, 1, MPI_COMM_WORLD, ista, ierr)
@@ -323,12 +324,14 @@ contains
        else
           call mpi_send(i_mod, 1, MPI_INTEGER, 0, 0, &
                & MPI_COMM_WORLD, ista, ierr)
-          call mpi_send(hypo_x(1, i_evt), i_mod, MPI_DOUBLE_PRECISION, &
-               & 0, 1, MPI_COMM_WORLD, ista, ierr)
-          call mpi_send(hypo_y(1, i_evt), i_mod, MPI_DOUBLE_PRECISION, &
-               & 0, 2, MPI_COMM_WORLD, ista, ierr)
-          call mpi_send(hypo_z(1, i_evt), i_mod, MPI_DOUBLE_PRECISION, &
-               & 0, 3, MPI_COMM_WORLD, ista, ierr)
+          if (i_mod > 0) then
+             call mpi_send(hypo_x(1, i_evt), i_mod, MPI_DOUBLE_PRECISION, &
+                  & 0, 1, MPI_COMM_WORLD, ista, ierr)
+             call mpi_send(hypo_y(1, i_evt), i_mod, MPI_DOUBLE_PRECISION, &
+                  & 0, 2, MPI_COMM_WORLD, ista, ierr)
+             call mpi_send(hypo_z(1, i_evt), i_mod, MPI_DOUBLE_PRECISION, &
+                  & 0, 3, MPI_COMM_WORLD, ista, ierr)
+          end if
        end if
     end do
     
@@ -463,9 +466,11 @@ contains
     if (self%rank == 0) then
        v_all(1:i_mod) = v(1:i_mod)
        j_mod = i_mod
+       print *, 0, j_mod
        do i_rank = 1, self%n_procs - 1
           call mpi_recv(n_recv, 1, MPI_INTEGER, i_rank, 0, &
                & MPI_COMM_WORLD, ista, ierr)
+          if (n_recv <= 0) cycle
           call mpi_recv(v_all(j_mod+1), n_recv, MPI_DOUBLE_PRECISION, &
                & i_rank, 1, MPI_COMM_WORLD, ista, ierr)
           j_mod = j_mod + n_recv
@@ -473,8 +478,10 @@ contains
     else
        call mpi_send(i_mod, 1, MPI_INTEGER, 0, 0, &
             & MPI_COMM_WORLD, ista, ierr)
-       call mpi_send(v(1), i_mod, MPI_DOUBLE_PRECISION, &
-            & 0, 1, MPI_COMM_WORLD, ista, ierr)
+       if (i_mod > 0) then
+          call mpi_send(v(1), i_mod, MPI_DOUBLE_PRECISION, &
+               & 0, 1, MPI_COMM_WORLD, ista, ierr)
+       end if
     end if
     
     return 
@@ -521,6 +528,7 @@ contains
           do i_rank = 1, self%n_procs - 1
              call mpi_recv(n_recv, 1, MPI_INTEGER, i_rank, 0, &
                   & MPI_COMM_WORLD, ista, ierr)
+             if (n_recv <= 0) cycle
              call mpi_recv(corr_all(j_mod+1, i_sta), n_recv, &
                   & MPI_DOUBLE_PRECISION, &
                   & i_rank, 1, MPI_COMM_WORLD, ista, ierr)
@@ -529,8 +537,10 @@ contains
        else
           call mpi_send(i_mod, 1, MPI_INTEGER, 0, 0, &
                & MPI_COMM_WORLD, ista, ierr)
-          call mpi_send(corr(1, i_sta), i_mod, MPI_DOUBLE_PRECISION, &
-               & 0, 1, MPI_COMM_WORLD, ista, ierr)
+          if (i_mod > 0) then
+             call mpi_send(corr(1, i_sta), i_mod, MPI_DOUBLE_PRECISION, &
+                  & 0, 1, MPI_COMM_WORLD, ista, ierr)
+          end if
        end if
     end do
     
