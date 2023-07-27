@@ -110,21 +110,21 @@ module cls_param
      integer :: n_given
      character(line_max) :: given(100)
      character(line_max) :: from_where
-     character(line_max), dimension(7) :: param_convert = &
+     character(line_max), dimension(8) :: param_convert = &
           & [ character(line_max) :: &
           & "n_procs", "station_file", "data_dir", "time_id_file", &
           & "cmp1", "cmp2", "filename_format", "t_win_conv" ]
-     character(line_max), dimension(3) :: param_correlate = &
+     character(line_max), dimension(4) :: param_correlate = &
           & [ character(line_max) :: &
           & "n_procs", "station_file", "t_win_corr", "t_step_corr"]
-     character(line_max), dimension(3) :: param_measure = &
+     character(line_max), dimension(4) :: param_measure = &
           & [ character(line_max) :: &
           & "n_procs", "station_file", "alpha", "n_pair_thred"]
-     character(line_max), dimension(6) :: param_select = &
+     character(line_max), dimension(7) :: param_select = &
           & [character(line_max) :: &
           & "n_procs", "station_file", "z_guess", &
           & "vs_min", "vs_max", "b_min", "b_max"]
-     character(line_max), dimension(28) :: param_mcmc = &
+     character(line_max), dimension(29) :: param_mcmc = &
           & [character(line_max) :: &
           & "n_procs", "station_file", "n_iter", "n_burn", "n_interval", &
           & "n_chains", "n_cool", "temp_high", "prior_z", &
@@ -238,7 +238,7 @@ contains
          & write(*,'(3A)')"<< Reading ", trim(self%station_file), " >>"
     call self%read_station_file()
     if (self%verb) write(*,*)
-    
+
     if (from_where == "convert") then
        ! Read data ID file
        if (self%verb) &
@@ -251,7 +251,6 @@ contains
        call self%make_filenames()
     end if
     
-
     return 
   end function init_param
 

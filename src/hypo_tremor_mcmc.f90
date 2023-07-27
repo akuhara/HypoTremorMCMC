@@ -68,7 +68,6 @@ program main
      call mpi_abort(MPI_COMM_WORLD, MPI_ERR_OTHER, ierr)
   end if
 
-
   !
   call init_random(5551111, 453222, 4444431,6765, rank)
   
