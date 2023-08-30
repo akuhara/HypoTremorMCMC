@@ -8,6 +8,10 @@ Two types of output files are generated after the successful running of this pro
 
 The following parameters must appear in the [parameter file](parameter_file.md). 
 
+__n_procs__
+
+Number of processes for MPI parallel computation. This value must be equal to the one you specify in the command line. The purpose of this parameter is to prevent unintended number specified in the command line, which for some programs results in unintended results.
+
 __station_file__
 
 Absolute or relative path to a [station file](station_file.md) that lists station names, their position (X-Y-Z), and sensitivities of two horizontal components.
