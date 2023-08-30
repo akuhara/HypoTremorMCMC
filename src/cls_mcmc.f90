@@ -15,12 +15,13 @@ module cls_mcmc
      type(model) :: a_corr
      type(model) :: qs
      
-     integer :: n_proposal_type = 5
+     integer :: n_proposal_type = 7
      integer :: n_iter
 
      integer :: i_iter
      integer, allocatable :: n_propose(:)
      integer, allocatable :: n_accept(:)
+     character(6), allocatable :: label(:)
      integer :: i_proposal_type
      double precision :: log_likelihood
      double precision :: temp = 1.d0
@@ -43,6 +44,7 @@ module cls_mcmc
      procedure :: get_vs => mcmc_get_vs
      procedure :: get_a_corr => mcmc_get_a_corr
      procedure :: get_qs => mcmc_get_qs
+     procedure :: get_label => mcmc_get_label
      procedure :: write_out_hypo => mcmc_write_out_hypo
      procedure :: write_out_t_corr => mcmc_write_out_t_corr
      procedure :: write_out_vs => mcmc_write_out_vs
@@ -77,6 +79,8 @@ contains
     
     allocate(self%n_propose(self%n_proposal_type))
     allocate(self%n_accept(self%n_proposal_type))
+    allocate(self%label(self%n_proposal_type))
+    self%label = [ character(5) :: "vs", "t_corr", "qs", "a_corr", "x", "y", "z" ]
     self%n_propose = 0
     self%n_accept  = 0
     self%n_iter    = n_iter
@@ -156,13 +160,13 @@ contains
        id   = int(rand_u() * self%n_events) + 1
        icmp = int(rand_u() * 3) 
        call hypo_proposed%perturb(3*id-icmp, log_prior_ratio, prior_ok)
-       self%i_proposal_type = 5
+       self%i_proposal_type = 5 + icmp
        evt_id = id
     end if
     
     ! Count proposal
-    self%n_propose(self%i_proposal_type) = &
-         & self%n_propose(self%i_proposal_type) + 1
+    !self%n_propose(self%i_proposal_type) = &
+    !     & self%n_propose(self%i_proposal_type) + 1
     
     return
   end subroutine mcmc_propose_model
@@ -179,6 +183,11 @@ contains
     double precision :: r
     double precision, parameter :: eps = epsilon(1.d0)
     
+    if (self%temp < 1.d0 + eps) then
+       self%n_propose(self%i_proposal_type) = &
+            & self%n_propose(self%i_proposal_type) + 1
+    end if
+    
 
     self%is_accepted = .false.
     if (prior_ok) then
@@ -192,7 +201,8 @@ contains
           end if
        end if
     end if
-
+    
+    
 
     if (self%is_accepted) then
        ! Accept model
@@ -202,8 +212,10 @@ contains
        self%a_corr         = a_corr
        self%qs             = qs
        self%log_likelihood = log_likelihood
-       self%n_accept(self%i_proposal_type) = &
-         & self%n_accept(self%i_proposal_type) + 1
+       if (self%temp < 1.d0 + eps) then
+          self%n_accept(self%i_proposal_type) = &
+               & self%n_accept(self%i_proposal_type) + 1
+       end if
     end if
 
     ! Adds iteration counter
@@ -345,6 +357,16 @@ contains
 
   !---------------------------------------------------------------------
     
+  function mcmc_get_label(self) result(label)
+    class(mcmc), intent(in) :: self
+    character(5), dimension(self%n_proposal_type) :: label
+    
+    label = self%label
+    
+    return
+  end function mcmc_get_label
+    
+  !---------------------------------------------------------------------
   
   function mcmc_write_out_hypo(self) result(out)
     class(mcmc), intent(inout) :: self
