@@ -5,6 +5,7 @@ nav:
     - hypo_tremor_convert.md
     - hypo_tremor_correlate.md
     - hypo_tremor_measure.md
+    - hypo_tremor_select.md
   - Need to prepare:
     - parameter_file.md
     - station_file.md
