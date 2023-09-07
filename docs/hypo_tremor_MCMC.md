@@ -47,4 +47,15 @@ Similar pseudo-code can be used to extract Qs values from the `qs.dd.out` file.
 
 ## t_corr.dd.out & a_corr.dd.out
 
+The `t_corr.dd.out` and `a_corr.dd.out` files, "dd" represents the process ID for parallel computation, store station-specific correction factors for arrival time delays and amplifications, respectively.
+For reading t_corr.dd.out, pseudo-code such as below can be used:
+
+```
+do i = 1, N_samples
+  do j = 1, N_stations
+    read iteration_number # as a 32-bit integer
+    read delay_correction_ij # as 64-bit double-precision floats
+  end do
+end do
+```
 
