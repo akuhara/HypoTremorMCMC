@@ -15,9 +15,17 @@ __Templete of the parameter file__
 # For all programs #
 #------------------#
 #
+# n_procs      : Number of processes for MPI parallel computation.
+#                This value must be equal to the one you specify in
+#                the command line. The purpose of this parameter is to
+#                prevent unintended number specified in the command line,
+#                which for some programs results in unintended results. 
+#
 # station_file : Input file that lists station names, their position (X-Y-Z), 
 #                and sensitivity
 #
+
+n_procs = 20
 
 station_file = station_xy.list
 

@@ -31,7 +31,7 @@ program main
   double precision, allocatable :: x_mu(:), y_mu(:)
   double precision :: dummy
   double precision :: temp, log_prior_ratio, log_likelihood
-  double precision, parameter :: eps = 1.0d-8
+  double precision, parameter :: eps = epsilon(1.d0)
 
 
   !------------------------------------------------------------------------
@@ -61,6 +61,12 @@ program main
   para = param(param_file, verb=verb, from_where="mcmc")
   call mpi_barrier(MPI_COMM_WORLD, ierr)
 
+  ! Check if MPI process number is as intended
+  if (verb .and. n_procs /= para%get_n_procs()) then
+     write(*,*) "ERROR: n_procs in parameter file must be " // &
+          & "equal to that is given in the command line"
+     call mpi_abort(MPI_COMM_WORLD, MPI_ERR_OTHER, ierr)
+  end if
 
   !
   call init_random(5551111, 453222, 4444431,6765, rank)
@@ -276,11 +282,15 @@ program main
      ! Swap Temp.
      call pt%swap_temperature(verb=verb)
   end do
-
+  
   close(io_hypo)
   close(io_t_corr)
   close(io_vs)
+  
+  mc = pt%get_mc(1)
+  call pt%output_proposal("proposal_count.txt", mc%get_label())
 
+  
   call mpi_barrier(MPI_COMM_WORLD, ierr)
   call mpi_finalize(ierr)
 

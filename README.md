@@ -65,6 +65,12 @@ To estimate tremor locations, follow these five steps:
  mpirun -np [process number] hypo_tremor_mcmc [parameter file]
 ```
 
+6. __Do statistics:__ Extract statistical information from MCMC samples.
+
+```
+ mpirun -np [process number] hypo_tremor_statistics [parameter file]
+```
+
 You can find detailed instructions on how to use this software by visiting the [online documentation](https://hypotremormcmc.readthedocs.io/en/latest/).
 
 ## Contributing

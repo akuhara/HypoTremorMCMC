@@ -31,9 +31,14 @@ module cls_param
      private
      character(line_max) :: param_file
      
+     ! # of processes for MPI
+     integer :: n_procs
+     
      ! Components
      integer :: n_cmps = 2
      
+     
+
      ! Stations
      character(line_max) :: station_file
      character(line_max), allocatable :: stations(:)
@@ -105,22 +110,23 @@ module cls_param
      integer :: n_given
      character(line_max) :: given(100)
      character(line_max) :: from_where
-     character(line_max), dimension(7) :: param_convert = &
+     character(line_max), dimension(8) :: param_convert = &
           & [ character(line_max) :: &
-          & "station_file", "data_dir", "time_id_file", &
+          & "n_procs", "station_file", "data_dir", "time_id_file", &
           & "cmp1", "cmp2", "filename_format", "t_win_conv" ]
-     character(line_max), dimension(3) :: param_correlate = &
+     character(line_max), dimension(4) :: param_correlate = &
           & [ character(line_max) :: &
-          & "station_file", "t_win_corr", "t_step_corr"]
-     character(line_max), dimension(3) :: param_measure = &
+          & "n_procs", "station_file", "t_win_corr", "t_step_corr"]
+     character(line_max), dimension(4) :: param_measure = &
           & [ character(line_max) :: &
-          & "station_file", "alpha", "n_pair_thred"]
-     character(line_max), dimension(6) :: param_select = &
+          & "n_procs", "station_file", "alpha", "n_pair_thred"]
+     character(line_max), dimension(7) :: param_select = &
           & [character(line_max) :: &
-          & "station_file", "z_guess", "vs_min", "vs_max", "b_min", "b_max"]
-     character(line_max), dimension(28) :: param_mcmc = &
+          & "n_procs", "station_file", "z_guess", &
+          & "vs_min", "vs_max", "b_min", "b_max"]
+     character(line_max), dimension(29) :: param_mcmc = &
           & [character(line_max) :: &
-          & "station_file", "n_iter", "n_burn", "n_interval", &
+          & "n_procs", "station_file", "n_iter", "n_burn", "n_interval", &
           & "n_chains", "n_cool", "temp_high", "prior_z", &
           & "prior_width_z", "prior_width_xy", "prior_vs", &
           & "prior_width_vs", "prior_qs", "prior_width_qs", &
@@ -137,6 +143,7 @@ module cls_param
      procedure :: read_station_file => param_read_station_file
      procedure :: read_time_id_file => param_read_time_id_file
      procedure :: set_value  => param_set_value
+     procedure :: get_n_procs => param_get_n_procs
      procedure :: get_n_cmps => param_get_n_cmps
      procedure :: get_n_stations => param_get_n_stations
      procedure :: get_stations => param_get_stations
@@ -231,7 +238,7 @@ contains
          & write(*,'(3A)')"<< Reading ", trim(self%station_file), " >>"
     call self%read_station_file()
     if (self%verb) write(*,*)
-    
+
     if (from_where == "convert") then
        ! Read data ID file
        if (self%verb) &
@@ -244,7 +251,6 @@ contains
        call self%make_filenames()
     end if
     
-
     return 
   end function init_param
 
@@ -336,8 +342,6 @@ contains
        end do
     end if
 
-    
-    
     return 
   end subroutine param_check_params
 
@@ -442,6 +446,8 @@ contains
        self%data_dir = val
     else if (name == "filename_format") then
        self%filename_format = val
+    else if (name == "n_procs") then
+       read(val,*) self%n_procs
     else if (name == "t_win_conv") then
        read(val,*) self%t_win_conv
     else if (name == "t_win_corr") then
@@ -536,6 +542,16 @@ contains
 
   !---------------------------------------------------------------------
 
+  integer function param_get_n_procs(self) result(n_procs)
+    class(param), intent(in) :: self
+    
+    n_procs = self%n_procs
+
+    return 
+  end function param_get_n_procs
+
+  !---------------------------------------------------------------------
+  
   integer function param_get_n_cmps(self) result(n_cmps)
     class(param), intent(in) :: self
     
