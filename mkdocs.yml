@@ -1,11 +1,13 @@
 site_name: HypoTremorMCMC
 
 nav:
+  - Home: ../README.md
   - Usage:
     - hypo_tremor_convert.md
     - hypo_tremor_correlate.md
     - hypo_tremor_measure.md
     - hypo_tremor_select.md
+    - hypo_tremor_mcmc.md
   - Need to prepare:
     - parameter_file.md
     - station_file.md
