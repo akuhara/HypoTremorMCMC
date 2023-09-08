@@ -8,6 +8,7 @@ nav:
     - hypo_tremor_measure.md
     - hypo_tremor_select.md
     - hypo_tremor_mcmc.md
+    - hypo_tremor_statistics.md
   - Need to prepare:
     - parameter_file.md
     - station_file.md
