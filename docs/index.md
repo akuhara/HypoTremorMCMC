@@ -6,34 +6,34 @@ Copyright (C) 2023 __Takeshi Akuhara__[![ORCID](https://orcid.org/sites/default/
 
 ---
 
-This repository contains software written in modern fortran (F2008 style) for 
-determining the source locations tremor signals without clear phase onsets. The details of the method is provided in a preprint 
+Welcome to the HypoTremorMCMC repository! This software, written in modern Fortran (F2008 style), is designed to determine the source locations of tremor signals with uncertainty estimates. For a detailed explanation of the method, please refer to our preprint:  
 [(Akuhara et al. 2023, EarthArXiv)](https://doi.org/10.31223/X59S9J).
 
 
  
-## __NOTE: This software is currently under development and the documentation may not be complete at this time. Any changes to the sorce code or documentation may occur without prior notification.__
+__Please note:__  This software is currently under development, and the documentation may not be complete at this time. Changes to the source code or documentation may occur without prior notification.
+
 
 ## Installation 
 
-To install the software, you need to have a Fortran compiler, OpenMPI, and FFTW installed on your system.  To get started, clone the repository to your local machine by running:
+To install the software, ensure you have a Fortran compiler, OpenMPI, and FFTW installed on your system. To get started, clone the repository to your local machine by running:
 
 ```
 git clone https://github.com/akuhara/HypoTremorMCMC.git 
 ```
 
-Then, compile the program by running the following command in the src directory of the repository:
+Next, compile the program by running the following command in the src directory of the repository:
 
 ```
-cd dir
+cd HypoTremorMCMC/src
 make
 ``` 
 
-It is important to note that you may need to edit the Makefile in accordance with your environment.
+Please note that you may need to edit the Makefile to match your environment.
 
 ## Usage
 
-To estimate tremor locations, follow these five steps:
+To estimate tremor locations, follow these six steps:
 
 1. __Envelope Conversion:__ Read continuous seismic records of two horizontal components from SAC format files and convert them into a smoothed envelope.
 
@@ -53,7 +53,7 @@ To estimate tremor locations, follow these five steps:
  mpirun -np [process number] hypo_tremor_measure [parameter file]
 ```
 
-4. __Select Good-quality Events:__ Select events with good-quality based on rough estimates of propagation speed and attenuation strengths of a seismic wave.
+4. __Select Good-quality Events:__ Select events with good-quality based on rough estimates of propagation speed and attenuation strengths of seismic waves.
 
 ```
  mpirun -np [process number] hypo_tremor_select [parameter file]
@@ -65,13 +65,13 @@ To estimate tremor locations, follow these five steps:
  mpirun -np [process number] hypo_tremor_mcmc [parameter file]
 ```
 
-6. __Do statistics:__ Extract statistical information from MCMC samples.
+6. __Statistical Analysis:__ Extract statistical information from MCMC samples.
 
 ```
  mpirun -np [process number] hypo_tremor_statistics [parameter file]
 ```
 
-You can find detailed instructions on how to use this software by visiting the [online documentation](https://hypotremormcmc.readthedocs.io/en/latest/).
+For detailed instructions on how to use this software, please visit the [online documentation](https://hypotremormcmc.readthedocs.io/en/latest/).
 
 ## Contributing
 
