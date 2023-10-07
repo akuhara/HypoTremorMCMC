@@ -1,0 +1,22 @@
+name: Fortran Build
+on:
+  push:
+    branches: [ main ]	
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Checkout repository
+	uses: actions/checkout@v2
+
+      - name: Install dependencies
+        run: |
+	   sudo apt-get update
+	   sudo apt-get install -y gfortran libopenmpi-dev libfftw3-dev
+
+      - name: Move to src directory and build
+        working-directory: src
+	run: |
+	   make FFTW="-I/usr/include -L/usr/lib/x86_64-linux-gnu -lfftw3"
