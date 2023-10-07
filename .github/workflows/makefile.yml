@@ -1,18 +1,18 @@
 name: Fortran Build
 on:
-  push:
+　push:
     branches: [ main ]	
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
+  runs-on: ubuntu-20.04
 
     steps:
       - name: Checkout repository
-	uses: actions/checkout@v2
+        uses: actions/checkout@v2
 
-      - name: Install dependencies
-        run: |
+      - name:　Install dependencies
+        run:　|
 	   sudo apt-get update
 	   sudo apt-get install -y gfortran libopenmpi-dev libfftw3-dev
 
