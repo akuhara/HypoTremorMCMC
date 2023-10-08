@@ -5,7 +5,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     
     steps:
       - name: Checkout repository
@@ -19,4 +19,4 @@ jobs:
       - name: Move to src directory and build
         working-directory: src
         run: |
-          make FFTW="-I/usr/include -lfftw3"
+          make FFTW="-I/usr/include -lfftw3 -lm -L/usr/lib/x86_64-linux-gnu"
