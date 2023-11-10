@@ -323,14 +323,14 @@ contains
           end do
        else
           call mpi_send(i_mod, 1, MPI_INTEGER, 0, 0, &
-               & MPI_COMM_WORLD, ista, ierr)
+               & MPI_COMM_WORLD, ierr)
           if (i_mod > 0) then
              call mpi_send(hypo_x(1, i_evt), i_mod, MPI_DOUBLE_PRECISION, &
-                  & 0, 1, MPI_COMM_WORLD, ista, ierr)
+                  & 0, 1, MPI_COMM_WORLD, ierr)
              call mpi_send(hypo_y(1, i_evt), i_mod, MPI_DOUBLE_PRECISION, &
-                  & 0, 2, MPI_COMM_WORLD, ista, ierr)
+                  & 0, 2, MPI_COMM_WORLD, ierr)
              call mpi_send(hypo_z(1, i_evt), i_mod, MPI_DOUBLE_PRECISION, &
-                  & 0, 3, MPI_COMM_WORLD, ista, ierr)
+                  & 0, 3, MPI_COMM_WORLD, ierr)
           end if
        end if
     end do
@@ -477,10 +477,10 @@ contains
        end do
     else
        call mpi_send(i_mod, 1, MPI_INTEGER, 0, 0, &
-            & MPI_COMM_WORLD, ista, ierr)
+            & MPI_COMM_WORLD, ierr)
        if (i_mod > 0) then
           call mpi_send(v(1), i_mod, MPI_DOUBLE_PRECISION, &
-               & 0, 1, MPI_COMM_WORLD, ista, ierr)
+               & 0, 1, MPI_COMM_WORLD, ierr)
        end if
     end if
     
@@ -536,10 +536,10 @@ contains
           end do
        else
           call mpi_send(i_mod, 1, MPI_INTEGER, 0, 0, &
-               & MPI_COMM_WORLD, ista, ierr)
+               & MPI_COMM_WORLD, ierr)
           if (i_mod > 0) then
              call mpi_send(corr(1, i_sta), i_mod, MPI_DOUBLE_PRECISION, &
-                  & 0, 1, MPI_COMM_WORLD, ista, ierr)
+                  & 0, 1, MPI_COMM_WORLD, ierr)
           end if
        end if
     end do
