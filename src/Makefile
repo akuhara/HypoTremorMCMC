@@ -92,27 +92,27 @@ cls_forward.o: cls_model.mod cls_obs_data.mod
 
 $(HYPO_TREMOR_CONVERT): $(OBJS_HYPO_TREMOR_CONVERT)
 	@if [ ! -d $(BINDIR) ]; then mkdir $(BINDIR); fi
-	$(FC) $(FFLAGS) $(COV) $(FFTW) $^ -o $@  
+	$(FC) $(FFLAGS) $(COV) $^ $(FFTW) -o $@  
 
 $(HYPO_TREMOR_CORRELATE): $(OBJS_HYPO_TREMOR_CORRELATE)
 	@if [ ! -d $(BINDIR) ]; then mkdir $(BINDIR); fi
-	$(FC) $(FFLAGS) $(COV) $(FFTW) $^ -o $@  
+	$(FC) $(FFLAGS) $(COV) $^ $(FFTW) -o $@  
 
 $(HYPO_TREMOR_MEASURE): $(OBJS_HYPO_TREMOR_MEASURE)
 	@if [ ! -d $(BINDIR) ]; then mkdir $(BINDIR); fi
-	$(FC) $(FFLAGS) $(COV) $(FFTW) $^ -o $@  
+	$(FC) $(FFLAGS) $(COV) $^ $(FFTW) -o $@  
 
 $(HYPO_TREMOR_SELECT): $(OBJS_HYPO_TREMOR_SELECT)
 	@if [ ! -d $(BINDIR) ]; then mkdir $(BINDIR); fi
-	$(FC) $(FFLAGS) $(COV) $(FFTW) $^ -o $@  
+	$(FC) $(FFLAGS) $(COV) $^ $(FFTW) -o $@  
 
 $(HYPO_TREMOR_MCMC): $(OBJS_HYPO_TREMOR_MCMC)
 	@if [ ! -d $(BINDIR) ]; then mkdir $(BINDIR); fi
-	$(FC) $(FFLAGS) $(COV) $(FFTW) $^ -o $@  
+	$(FC) $(FFLAGS) $(COV) $^ $(FFTW) -o $@  
 
 $(HYPO_TREMOR_STATISTICS): $(OBJS_HYPO_TREMOR_STATISTICS)
 	@if [ ! -d $(BINDIR) ]; then mkdir $(BINDIR); fi
-	$(FC) $(FFLAGS) $(COV) $(FFTW) $^ -o $@  
+	$(FC) $(FFLAGS) $(COV) $^ $(FFTW) -o $@  
 
 
 .PHONY: clean
