@@ -243,7 +243,7 @@ program main
 
         ! Forward 
         if (prior_ok) then
-           if (evt_id > 0) then
+           if (evt_id > 0 .and. i > 1) then
               call fwd%partially_update_log_likelihood(                &
                    & evt_id, mc%get_hypo(),                            &
                    & mc%get_log_likelihood(),                          &
