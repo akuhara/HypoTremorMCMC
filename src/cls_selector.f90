@@ -86,7 +86,7 @@ module cls_selector
        double precision :: dummy1, dummy2, dummy3
        double precision :: slope, intercept, res
        
-       write(opt_file, '(a,i5.5,a)')"opt_data.", id, ".dat"
+       write(opt_file, '(A,I6.6,A)')"opt_data.", id, ".dat"
        open(newunit=io, file=opt_file, iostat=ios, status='old')
        print *, "Now working on ", trim(opt_file)
        do i = 1, self%n_sta
@@ -102,7 +102,7 @@ module cls_selector
             & log(self%d(1:self%n_sta, i_sta_nearest(1)))
        
 
-       write(out_file,'(a,i5.5,a)')"dist_plot.", id, ".dat"
+       write(out_file,'(A,i6.6,A)')"dist_plot.", id, ".dat"
        open(newunit=io2, status="replace", file=out_file, iostat=ios)
        do i = 1, self%n_sta
           write(io2, *)self%d(i,i_sta_nearest(1)), t(i), t_err(i), a(i), a_err(i)

@@ -309,7 +309,7 @@ contains
        j1 = (id - 1) * self%n_step + 1
        j2 = j1 + self%n - 1
        !print *, j1, j2
-       write(trace_file,'(A,I5.5,A)') "trace.", id, ".dat"
+       write(trace_file,'(A,I6.6,A)') "trace.", id, ".dat"
        open(newunit=io, file=trace_file, form="formatted", status="replace", &
             & iostat=ierr)
        
@@ -370,7 +370,7 @@ contains
        
        close(io)
 
-       write(time_file,'(A,I5.5,A)')"opt_data.", id, ".dat"
+       write(time_file,'(A,I6.6,A)')"opt_data.", id, ".dat"
        open(newunit=io, file=time_file, form="formatted", status="replace", &
             & iostat=ierr)
        do ista = 1, self%n_sta

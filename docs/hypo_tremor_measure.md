@@ -16,7 +16,7 @@ the program proceeds to calculate the relative time and amplitude for that parti
 
 The output files are as follows: 
 
-## opt_data._ddddd_.dat
+## opt_data._dddddd_.dat
 
 Each row in this file presents relative arrival time and amplitude information at a station in the following format:
 

@@ -81,7 +81,7 @@ contains
        print *, "<< Reading obs files>>"
     end if
     do i = 1, self%n_events
-       write(obs_file,'(A,I5.5,A)')"opt_data.", self%win_id(i), ".dat"
+       write(obs_file,'(A,I6.6,A)')"opt_data.", self%win_id(i), ".dat"
        open(newunit=io, file=obs_file, status="old", iostat=ierr)
        if (ierr /= 0) then
           print *, trim(obs_file)
