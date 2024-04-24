@@ -6,8 +6,8 @@ Copyright (C) 2023 __Takeshi Akuhara__[![ORCID](https://orcid.org/sites/default/
 
 ---
 
-Welcome to the HypoTremorMCMC repository! This software, written in modern Fortran (F2008 style), is designed to determine the source locations of tremor signals with uncertainty estimates. For a detailed explanation of the method, please refer to our preprint:  
-[(Akuhara et al. 2023, EarthArXiv)](https://doi.org/10.31223/X59S9J).
+Welcome to the HypoTremorMCMC repository! This software, written in modern Fortran (F2008 style), is designed to determine the source locations of tremor signals with uncertainty estimates. For a detailed explanation of the method, please refer to our published paper:  
+[(Akuhara et al. 2023, GJI)](https://doi.org/10.1093/gji/ggad387).
 
 
  
