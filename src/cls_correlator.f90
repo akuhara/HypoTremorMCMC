@@ -207,7 +207,9 @@ contains
        x1(1:n) = apply_taper(n, x1)
        x1 = x1 - sum(x1) / n
        l1 = sqrt(sum(x1**2))
-       self%r_tmp = x1 / l1
+       if (l1 /= 0.d0) then
+          self%r_tmp = x1 / l1
+       end if
        
        self%c_tmp = (0.d0, 0.d0) ! Not sure for reason, but seems necessary
        call fftw_execute_dft_r2c(self%plan_r2c, self%r_tmp(1:n), self%c_tmp(1:n))
@@ -217,7 +219,9 @@ contains
        x2(1:n) = apply_taper(n, x2)
        x2 = x2 - sum(x2) / n
        l2 = sqrt(sum(x2**2))
-       self%r_tmp = x2 / l2
+       if (l2 /= 0.d0) then
+          self%r_tmp = x2 / l2
+       end if
 
        self%c_tmp = (0.d0, 0.d0) ! Not sure for reason, but seems necessary
        call fftw_execute_dft_r2c(self%plan_r2c, self%r_tmp(1:n), self%c_tmp(1:n))
