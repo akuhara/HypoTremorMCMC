@@ -96,6 +96,7 @@ contains
 
 
     ! Read dt, n, and n_win from envelope and corr_max file
+    print *, "Checking files"
     call self%check_files()
 
     allocate(self%r_tmp(self%n))
@@ -144,9 +145,12 @@ contains
        prev_dt = self%dt
        
     end do
+    
     self%n_step = nint(self%t_step / self%dt)
     self%n      = nint(self%t_win  / self%dt)
 
+    print *, "Done: checking envelope files"
+    
     do i = 1, self%n_pair
        sta1 = self%pair(1, i)
        sta2 = self%pair(2, i)
@@ -156,7 +160,7 @@ contains
             & trim(sta1) // "." // trim(sta2) // ".max_corr"
        inquire(file=target_file, EXIST=is_ok)
        if (.not. is_ok) then
-          write(0,*) "ERROR: " // trim(target_file) // "does not exsit"
+          write(0,*) "ERROR: " // trim(target_file) // " does not exsit"
           error stop 
        end if
        
@@ -177,8 +181,8 @@ contains
        end if
        prev_n_smp = self%n_win
        
-       
     end do
+    print *, "Done: checking max_corr files"
     allocate(self%detected(self%n_win, self%n_pair))
     
     call mpi_barrier(MPI_COMM_WORLD, ierr)
@@ -221,12 +225,16 @@ contains
           read(io) dummy 
           read(io) cc_histo(j)
        end do
-
+       
        close(io)
+       print *, "Done reading ", trim(corr_file)
 
        ! Get threshold
+       print *, "Sorting correlation values"
+       print *, "n = ", self%n * self%n_win
        call quick_sort(cc_histo, 1, self%n * self%n_win)
        self%cc_thred(i) = cc_histo(int(self%n * self%n_win * self%alpha))
+       print *, "Threshold: ", self%cc_thred(i)
        !k = int(self%n * self%n_win * self%alpha)
        !call quick_select(cc_histo, self%n * self%n_win, k, self%cc_thred(i))
        
