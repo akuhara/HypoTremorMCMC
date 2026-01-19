@@ -6,7 +6,7 @@ program main
   implicit none   
   integer :: i, i1, i2
   integer :: n_args, ierr, n_procs, rank, io, ios, n_win, io2, io3
-  integer, allocatable :: win_id(:)
+  integer, allocatable :: win_id(:), rank_in_charge(:)
   double precision, allocatable :: dummy(:)
   double precision, allocatable :: vs(:), b(:), t0(:), a0(:), cc_t(:), cc_a(:)
   double precision, allocatable :: vs_all(:), b_all(:), t0_all(:), a0_all(:)
@@ -79,7 +79,8 @@ program main
   t0(:) = 0.d0
   a0(:)  = 0.d0
 
-  call get_mpi_task_id(n_win, i1, i2)
+  allocate(rank_in_charge(n_win))
+  call get_mpi_task_id(n_win, i1, i2, rank_in_charge, .false.)
   
   slct = selector(&
        & station_names = para%get_stations(), &

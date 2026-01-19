@@ -257,7 +257,10 @@ contains
     ltmp = self%detected
     call mpi_allreduce(ltmp, self%detected, size(ltmp), MPI_LOGICAL, MPI_LOR, &
          & MPI_COMM_WORLD, ierr)
-    call get_mpi_task_id(self%n_win, id1, id2)
+
+    deallocate(rank_in_charge)
+    allocate(rank_in_charge(self%n_win))
+    call get_mpi_task_id(self%n_win, id1, id2, rank_in_charge, .false.)
 
     ! Count number of station pairs that meet CC condition
     self%win_id = [integer :: ]
@@ -304,6 +307,7 @@ contains
   subroutine measurer_measure_lag_time(self)
     class(measurer), intent(inout) :: self
     integer :: i1, i2, id, i, io, ierr, j, ista, j1, j2, io2
+    integer, allocatable :: rank_in_charge(:)
     double precision, allocatable :: tmp(:, :)
     double precision :: fac, t(self%n_sta), t_stdv(self%n_sta)
     double precision :: amp(self%n_sta), amp_stdv(self%n_sta)
@@ -312,7 +316,8 @@ contains
     !print *, self%win_id
     
     allocate(tmp(self%n, self%n_sta))
-    call get_mpi_task_id(self%n_detected, i1, i2)
+    allocate(rank_in_charge(self%n_detected))
+    call get_mpi_task_id(self%n_detected, i1, i2, rank_in_charge, .false.)
 
     do i = i1, i2
        id = self%win_id(i)
