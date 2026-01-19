@@ -99,6 +99,7 @@ contains
     class(correlator), intent(inout) :: self
     type(c3_data), intent(in) ::  env(:)
     integer :: i_sta, j_sta, n_pair, n_sta, i, j, io, ierr
+    integer, allocatable :: rank_in_charge(:)
     integer :: id_start, id_end, id, rank
     integer :: count
 
@@ -119,8 +120,8 @@ contains
 
     
     n_pair = n_sta * (n_sta - 1) / 2
-    
-    call get_mpi_task_id(n_pair, id_start, id_end)
+    allocate(rank_in_charge(n_pair))
+    call get_mpi_task_id(n_pair, id_start, id_end, rank_in_charge, .false.)
     
     do id = id_start, id_end
        ! Assign station pair
