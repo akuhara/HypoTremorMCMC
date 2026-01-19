@@ -194,6 +194,7 @@ contains
   subroutine measurer_scan_cc(self)
     class(measurer), intent(inout) :: self
     integer :: id1, id2, i, io, i_win, ierr, rank, j, k, ios
+    integer, allocatable :: rank_in_charge(:)
     character(line_max) :: sta1, sta2, thred_file, max_corr_file
     character(line_max) :: detected_win_file, corr_file
     double precision :: cc, dummy, t
@@ -202,7 +203,8 @@ contains
     
     self%detected = .false.
     self%cc_thred = 0.d0
-    call get_mpi_task_id(self%n_pair, id1, id2)
+    allocate(rank_in_charge(self%n_pair))
+    call get_mpi_task_id(self%n_pair, id1, id2, rank_in_charge, .false.)
 
     allocate(cc_histo(self%n * self%n_win))
     do i = id1, id2
