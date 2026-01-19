@@ -5,6 +5,7 @@ program hypo_tremor_convert
   use cls_convertor, only: convertor
   implicit none 
   integer :: n_args, ierr, rank, n_procs, id_start, id_end, i_sta, n_pair
+  integer, allocatable :: rank_in_charge(:)
   character(line_max) :: param_file
   type(param) :: para
   type(convertor) :: conv
@@ -43,7 +44,8 @@ program hypo_tremor_convert
 
 
   ! Get task ID
-  call get_mpi_task_id(para%get_n_stations(), id_start, id_end)
+  allocate(rank_in_charge(para%get_n_stations()))
+  call get_mpi_task_id(para%get_n_stations(), id_start, id_end, rank_in_charge, .false.)
   call mpi_barrier(MPI_COMM_WORLD, ierr)
 
   ! Convert raw data to smoothed envelope
